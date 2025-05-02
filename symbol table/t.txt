@@ -1,0 +1,11 @@
+int variable1 ;
+float x12 ;
+char abc123 ;
+boolean flag ;
+int jklm ;
+double PI ;
+int counter ;
+string name ;
+float average ;
+char grade ;
+int score ;
