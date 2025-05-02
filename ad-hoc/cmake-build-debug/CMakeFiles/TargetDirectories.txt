@@ -1,3 +1,0 @@
-D:/College/Compiler/Mohammad Matar and Mohammad Raed/ad-hoc/cmake-build-debug/CMakeFiles/test.dir
-D:/College/Compiler/Mohammad Matar and Mohammad Raed/ad-hoc/cmake-build-debug/CMakeFiles/edit_cache.dir
-D:/College/Compiler/Mohammad Matar and Mohammad Raed/ad-hoc/cmake-build-debug/CMakeFiles/rebuild_cache.dir
