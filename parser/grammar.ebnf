@@ -1,0 +1,56 @@
+program = decl_list ;
+
+decl_list = decl ";" decl_list | "λ" ;
+
+decl = "var" id ":" type 
+     | "constant" id "=" expr 
+     | "function" id formal_list ":" type block 
+     | "procedure" id formal_list block ;
+
+type = "integer" | "boolean" | "string" ;
+
+formal_list = "()" | "(" formals ")" ;
+
+
+stmt = id ":=" expr
+     | "if" expr "then" stmt "fi"
+     | "if" expr "then" stmt "else" stmt "fi"
+     | "while" expr "do" stmt "od"
+     | "for" id ":=" expr "to" expr "do" stmt "od"
+     | "read" "(" id ")"
+     | "write" "(" id ")"
+     | id arg_list
+     | "return" "(" expr ")"
+     | block ;
+
+block = "begin" var_decl_list stmt_list "end" ;
+
+var_decl_list = var_decl ";" var_decl_list | " λ" ;
+
+var_decl = "var" id ":" type ;
+
+stmt_list = stmt ";" stmt_list | " λ" ;
+
+arg_list = "()" | "(" args ")" ;
+
+args = expr | expr "," args ;
+
+expr = id
+     | id arg_list
+     | integer_constant
+     | string_constant
+     | expr arith_op expr
+     | "true"
+     | "false"
+     | expr rel_op expr
+     | expr rel_conj expr
+     | unary_op "(" expr ")"
+     | "(" expr ")" ;
+
+arith_op = "*" | "/" | "+" | "-" ;
+
+rel_op = "=" | "!=" | "<" | "<=" | ">" | ">=" ;
+
+rel_conj = "and" | "or" ;
+
+unary_op = "-" | "not" ;

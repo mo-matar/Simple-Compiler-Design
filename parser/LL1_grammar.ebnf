@@ -1,0 +1,91 @@
+program = decl_list ;
+
+decl_list = decl ";" decl_list | "λ" ;
+
+decl = "var" id ":" type 
+     | "constant" id "=" expr 
+     | "function" id formal_list ":" type block 
+     | "procedure" id formal_list block ;
+
+type = "integer" | "boolean" | "string" ;
+
+formal_list = "()" | "(" formals ")" ;
+
+formals = id ":" type formals_tail ;
+formals_tail = "," id ":" type formals_tail | "λ" ;
+
+
+
+
+stmt = id stmt_id_tail
+     | "if" expr "then" stmt if_tail
+     | "while" expr "do" stmt "od"
+     | "for" id ":=" expr "to" expr "do" stmt "od"
+     | "read" "(" id ")"
+     | "write" "(" id ")"
+     | "return" "(" expr ")"
+     | block ;
+
+stmt_id_tail = ":=" expr | arg_list ;
+
+if_tail = "fi" | "else" stmt "fi" ;
+
+block = "begin" var_decl_list stmt_list "end" ;
+
+var_decl_list = var_decl ";" var_decl_list | "λ" ;
+
+var_decl = "var" id ":" type ;
+
+stmt_list = stmt ";" stmt_list | "λ" ;
+
+arg_list = "()" | "(" args ")" ;
+
+args = expr args_tail ;
+args_tail = "," expr args_tail | "λ" ;
+
+
+
+rel_op = "=" | "!=" | "<" | "<=" | ">" | ">=" ;
+
+rel_conj = "and" | "or" ;
+
+unary_op = "-" | "not" ;
+
+add_sub_op = "+" | "-" ;
+mult_div_op = "*" | "/" ;
+
+primary_expr_tail = arg_list | "λ" ;
+
+expr = expr2 expr_tail ;
+expr_tail = matarrel_conj expr2 expr_tail | "λ" ;
+
+expr2 = expr3 expr2_tail ;
+expr2_tail = rel_op expr3 expr2_tail | "λ" ;
+
+expr3 = expr4 expr3_tail ;
+expr3_tail = add_sub_op expr4 expr3_tail | "λ" ;
+
+expr4 = expr5 expr4_tail ;
+expr4_tail = mult_div_op expr5 expr4_tail | "λ" ;
+
+expr5 = unary_op "(" expr ")" | primary_expr ;
+
+primary_expr = id primary_expr_tail
+             | integer_constant
+             | string_constant
+             | "true"
+             | "false"
+             | "(" expr ")" ;
+
+
+# expr = expr rel_conj expr2 | expr2 ;
+# expr2 = expr2 rel_op expr3 | expr3 ; 
+# expr3 = expr3 add_sub_op expr4 | expr4 ;
+# expr4 = expr4 mult_div_op expr5 | expr5 ;
+# expr5 = unary_op "(" expr ")" | primary_expr ;
+# primary_expr = id primary_expr_tail
+#              | integer_constant
+#              | string_constant
+#              | "true"
+#              | "false"
+#              | "(" expr ")" ;
