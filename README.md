@@ -8,73 +8,48 @@ This compiler project implements a Pascal/Ada-inspired language with structured 
 
 ## Sample Code
 
-```
-## This is a sample program demonstrating the language syntax ##
+```pascal
+program;
 
-program SampleProgram
-
-## Variable declarations ##
-var
-    x, y: integer;
-    pi: constant float := 3.14;
-    name: string;
-    isValid: bool;
-
-## Function declaration ##
-function calculateArea(radius: float): float
-begin
-    return pi * radius * radius;
-end
-
-## Procedure declaration ##
-procedure printInfo(message: string)
-begin
-    write(message);
-end
-
-## Main program ##
-begin
-    ## Variable initialization ##
-    x := 10;
-    y := 20;
-    isValid := true;
-    name := "Sample Program";
-
-    ## Conditional statement ##
-    if x < y then
-        write("y is greater than x");
+  var x : integer;
+  var y : integer;
+  constant MAX = 100;
+  
+  function factorial(n : integer) : integer
+  begin
+    var result : integer;
+    result := 1;
+    for i := 1 to n do
+      result := result * i
+    od;
+    return(result)
+  end;
+  
+  procedure printNumber(num : integer)
+  begin
+    write(num)
+  end;
+  
+  function isEven(n : integer) : boolean
+  begin
+    return(n / 2 * 2 = n)
+  end;
+  
+  begin
+    read(x);
+    if x > MAX then
+      x := MAX
+    fi;
+    
+    y := factorial(x);
+    
+    if isEven(y) then
+      write(y)
     else
-        write("x is greater than or equal to y");
+      printNumber(y);
+      write(x)
     fi
-
-    ## Loop examples ##
-    ## While loop ##
-    while x > 0 do
-        write(x);
-        x := x - 1;
-    od
-
-    ## For loop ##
-    for i from 1 to 10 by 1 do
-        y := y + i;
-    od
-
-    ## Function call with result ##
-    write("Area of circle with radius 5: ");
-    write(calculateArea(5.0));
-
-    ## Procedure call ##
-    printInfo("Program completed successfully!");
-
-    ## Boolean operations ##
-    isValid := (x = 0) and (y > 15) or not false;
-
-    ## Read input ##
-    write("Enter your name: ");
-    read(name);
-    write("Hello, ");
-    write(name);
-end
+  end;
 ```
 
 ## Language Features
