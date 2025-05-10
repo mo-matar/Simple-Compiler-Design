@@ -1,14 +1,15 @@
 #ifndef __AST__H
 #define __AST__H
 //ast.h
+#include "symbol_table_entry.h"
 
 /* Definitions of list datatypes */
 /* List of AST nodes */
-typedef SymbolTableEntry  symbol_table_entry;
+typedef STEntry symbol_table_entry;
 
 typedef struct ast_list_cell 
 {
- struct ast_node *head; // pointer to  a tree
+ struct ast_node *head; // pointer to a tree
  struct ast_list_cell *tail;  // this is the next pointer that you use typically in the list
 } ast_list;
 
@@ -16,7 +17,7 @@ typedef struct ast_list_cell
 typedef struct ste_list_cell
 {
  symbol_table_entry *head; // pointer to a symbol table entry
- struct ste_lst_cell *tail; //  this is the next pointer that you use typically in the list
+ struct ste_list_cell *tail; //  this is the next pointer that you use typically in the list
 } ste_list;
 
 ////////////////////////////////////////////////////////////
@@ -25,7 +26,7 @@ typedef enum
 {
 	ast_var_decl,		 /* Top-level variable declaration */
 	ast_const_decl,		 /* II constant declaration */
-	ast_routine decl,	 /* II procedure or function decl. */
+	ast_routine_decl,	 /* II procedure or function decl. */
 	ast_assign,			 /* Assignment statement */
 	ast_if,				 /* If-then-else statement */
 	ast_while,			 /* While statement */
@@ -45,27 +46,35 @@ typedef enum
 	ast_minus,			 /* -operator */
 	ast_eq,				/* = operator */
 	ast_neq,			/* != operator */
+	ast_lt,             /* < operator */
+	ast_le,             /* <= operator */
+	ast_gt,             /* > operator */
+	ast_ge,             /* >= operator */
+	ast_and,            /* and operator */
+	ast_or,             /* or operator */
+	ast_cand,           /* cand operator */
+	ast_cor,            /* cor operator */
+	ast_not,            /* not operator */
+	ast_uminus,         /* unary -operator */
+	ast_eof,            /* End of File */
+	ast_float,          /* float */
+	ast_itof,           /* convert integr to float */
+} AST_type;
 
-	ast_lt, /* < operator */
-	ast_le, /* <= operator */
-	ast_gt, /* > operator */
-	ast_ge, /* >= operator */
-	ast_and, /* and operator */
-	ast_or, /* or operator */
-	ast_cand, /* cand operator */
-	ast_cor, /* cor operator */
-	ast_not, /* not operator */
-	ast_uminus, /* unary -operator */
-	ast_eof, /* End of File */
-	ast_float, /* float */
-	ast_itof, /* convert integr to float */
-}AST_type;
+// Define j_type directly here instead of depending on types.h
+// typedef enum J_type_enum {
+//     type_none,
+//     type_integer,
+//     type_float,
+//     type_boolean,
+//     type_string
+// } j_type;
 
 ///////////////////////////////////////////////////////////////////////
 /* The actual datatype for an abstract syntax tree (AST) node. */
-Typedef struct ast_node
+typedef struct ast_node
 {
- AST_type      type; /* Type of the AST node */
+ AST_type type; /* Type of the AST node */
  union /* The fields depend on a node's type */
 	{
 	 struct{
@@ -74,7 +83,7 @@ Typedef struct ast_node
 	 } a_var_decl;
 	
 	 struct{
-			symbol_tabLe_entry *name; /* Constant's symbol table entry */
+			symbol_table_entry *name; /* Constant's symbol table entry */
 			int value; /* Evaluated value of constant */
 	 } a_const_decl;
 	
@@ -86,7 +95,7 @@ Typedef struct ast_node
 	} a_routine_decl;
 	
 	 struct{
-		     symbol_tabLe_entry *lhs; /* Target of assignment */
+		     symbol_table_entry *lhs; /* Target of assignment */
 			 struct ast_node *rhs; /* Right side of assignment */
 	} a_assign;
 	
@@ -113,7 +122,7 @@ Typedef struct ast_node
 	} a_read;
 
 	struct{
-				symbol_table_entry *var; /* Source variable */
+			symbol_table_entry *var; /* Source variable */
 	} a_write;
 
 	struct{
@@ -123,7 +132,7 @@ Typedef struct ast_node
   
 	struct{
 		   ste_list *vars; /* Symbol table entries of local variables */
-		  ast_list *stmts; /* Statements in block */
+		   ast_list *stmts; /* Statements in block */
 	} a_block;
 
 	struct{
@@ -148,35 +157,35 @@ Typedef struct ast_node
 
 	struct{
 		int value; /* Boolean value */
-	}a_boolean;
+	} a_boolean;
 
 	struct{ 
 		struct ast_node *arg; /* Argument */
 		j_type type;
-	} a_unary_op
+	} a_unary_op;
 
 	struct{
 		struct ast_node *larg; /* Argument 1 */
 		struct ast_node *rarg; /* Argument 2 */
-		ast_type type;
-		//j_type rel_type;
+		j_type type;
 	} a_binary_op;
 
 	struct {
 		struct ast_node *arg;
 	} a_itof; 
-  
  } f;  // union 
-} AST; // ASt structure
+} AST; // AST structure
 
- /* Externally-visible functions: */
- ast_list *cons_ast (AST *, ast_list *);
- ste list *cons ste (symbol table entry *, ste list *);
- int eval_ast_expr (file_descriptor *, AST *);
- AST *make_ast_node ();
- void print_ast_node (FILE *, AST *);
+/* Externally-visible functions: */
+ast_list *cons_ast(AST *, ast_list *);
+ste_list *cons_ste(symbol_table_entry *, ste_list *);
+int eval_ast_expr(FileDescriptor *, AST *);
+AST *make_ast_node(AST_type type, ...);
+void print_ast_node(FILE *, AST *);
+
+// Helper functions to interact with STEntry
+const char* ste_name(symbol_table_entry *ste);
+int ste_const_value(symbol_table_entry *ste);
+j_type ste_var_type(symbol_table_entry *ste);
+
 #endif
-
-
-
-
