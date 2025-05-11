@@ -14,6 +14,8 @@ Scanner::Scanner(FileDescriptor *fileDescriptor) {
     fd = fileDescriptor;
 }
 
+
+
 // Define keywords for the language
 const int KEYWORD_COUNT = 30;
 const std::string KEYWORDS[KEYWORD_COUNT] = {

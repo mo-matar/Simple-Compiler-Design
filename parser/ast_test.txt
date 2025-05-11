@@ -1,0 +1,13 @@
+AST TEST OUTPUT
+==============
+
+Simple if statement: if x > y then read x else read y
+
+begin
+  var x : integer
+  var y : integer
+  if (x > y) then
+    read(x)
+  else
+    read(y);
+end

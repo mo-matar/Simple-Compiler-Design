@@ -1,145 +1,158 @@
 //ast.cpp
-/* Create and return a new abstract syntax tree (AST) node. The first
-argument is the type of the node (one of AST_type). The rest of the
-arguments are the fields of that type of node, in order. */
-
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
-#include <new>
-#include "FileDescriptor.h"
-#include "symbol.h"
+#include <string.h>
 #include "ast.h"
+#include "FileDescriptor.h"
 
-// Additional declarations for helper functions
-void fatal_error(const char* message) {
-    fprintf(stderr, "%s\n", message);
+// Type name strings for printing
+static const char* type_names[] = {
+    "none", "integer", "float", "boolean", "string"
+};
+
+/* Internal routines: */
+static void nl_indent(FILE *fp, int indent);
+static void p_a_n(FILE *fp, AST *node, int indent);
+static void print_ast_list(FILE *fp, ast_list *list, const char *separator, int indent);
+static void print_ste_list(FILE *fp, ste_list *list, const char *prefix, const char *separator, int indent);
+
+// Error handling functions
+static void fatal_error(const char* message) {
+    fprintf(stderr, "FATAL ERROR: %s\n", message);
     exit(1);
 }
 
-// Helper functions to interact with STEntry instances
-const char* ste_name(symbol_table_entry *ste) {
-    static char unknown[] = "unknown";
-    if (ste == NULL) {
-        return unknown;
-    }
-    return ste->Name;
+// Helper function to get symbol name
+static const char* ste_name(symbol_table_entry *entry) {
+    return entry ? entry->Name : "unknown";
 }
 
-int ste_const_value(symbol_table_entry *ste) {
-    if (ste == NULL || !ste->IsConstant) {
-        return 0;  // Default value if not a constant or NULL
-    }
-    return ste->ConstValue;
+// Helper function to get variable type
+static j_type ste_var_type(symbol_table_entry *entry) {
+    return entry ? entry->VarType : type_none;
 }
 
-j_type ste_var_type(symbol_table_entry *ste) {
-    if (ste == NULL) {
-        return type_none;
-    }
-    return ste->VarType;
+// Helper function to get constant value
+static int ste_const_value(symbol_table_entry *entry) {
+    return entry ? entry->ConstValue : 0;
 }
 
-// External reference to type names
-const char* type_names[] = {"none", "integer", "float", "boolean", "string"};
+// Create a new list cell with an AST node
+ast_list *cons_ast(AST *head, ast_list *tail) {
+    ast_list *cell = (ast_list *)malloc(sizeof(ast_list));
+    if (cell == NULL) {
+        fatal_error("Out of memory in cons_ast");
+    }
+    cell->head = head;
+    cell->tail = tail;
+    return cell;
+}
 
-/* Internal routines: */
-static void nl_indent(FILE *, int);
-static void p_a_n(FILE *, AST *, int);
-static void print_ast_list(FILE *, ast_list *, char *, int);
-static void print_ste_list(FILE *, ste_list *, char *, char *, int);
+// Create a new list cell with a symbol table entry
+ste_list *cons_ste(symbol_table_entry *head, ste_list *tail) {
+    ste_list *cell = (ste_list *)malloc(sizeof(ste_list));
+    if (cell == NULL) {
+        fatal_error("Out of memory in cons_ste");
+    }
+    cell->head = head;
+    cell->tail = tail;
+    return cell;
+}
 
-///////////////////////////////////////////////////////////////////////
-AST * make_ast_node(AST_type type, ...) 
-{
-    AST *n = new AST();
-    va_list ap;
-
-    if (n == NULL) fatal_error("memory allocation failed in make_ast_node");
+// Create an AST node with variable arguments
+AST *make_ast_node(AST_type type, ...) {
+    AST *node = (AST *)malloc(sizeof(AST));
+    if (node == NULL) {
+        fatal_error("Out of memory in make_ast_node");
+    }
     
-    va_start(ap, type);
-    n->type = type;
+    va_list args;
+    va_start(args, type);
+    
+    node->type = type;
+    
     switch (type) {
         case ast_var_decl:
-            n->f.a_var_decl.name = va_arg(ap, symbol_table_entry *);
-            n->f.a_var_decl.type = va_arg(ap, j_type);
+            node->f.a_var_decl.name = va_arg(args, symbol_table_entry *);
+            node->f.a_var_decl.type = va_arg(args, j_type);
             break;
 
         case ast_const_decl:
-            n->f.a_const_decl.name = va_arg(ap, symbol_table_entry *);
-            n->f.a_const_decl.value = va_arg(ap, int); 
+            node->f.a_const_decl.name = va_arg(args, symbol_table_entry *);
+            node->f.a_const_decl.value = va_arg(args, int);
             break;
 
         case ast_routine_decl:
-            n->f.a_routine_decl.name = va_arg(ap, symbol_table_entry *);
-            n->f.a_routine_decl.formals = va_arg(ap, ste_list *);
-            n->f.a_routine_decl.result_type = va_arg(ap, j_type);
-            n->f.a_routine_decl.body = va_arg(ap, AST *);
+            node->f.a_routine_decl.name = va_arg(args, symbol_table_entry *);
+            node->f.a_routine_decl.formals = va_arg(args, ste_list *);
+            node->f.a_routine_decl.result_type = va_arg(args, j_type);
+            node->f.a_routine_decl.body = va_arg(args, AST *);
             break;
 
-        case ast_assign:        
-            n->f.a_assign.lhs = va_arg(ap, symbol_table_entry *);    
-            n->f.a_assign.rhs = va_arg(ap, AST *);
+        case ast_assign:
+            node->f.a_assign.lhs = va_arg(args, symbol_table_entry *);
+            node->f.a_assign.rhs = va_arg(args, AST *);
             break;
 
         case ast_if:
-            n->f.a_if.predicate = va_arg(ap, AST *);
-            n->f.a_if.conseq = va_arg(ap, AST *);
-            n->f.a_if.altern = va_arg(ap, AST *);
+            node->f.a_if.predicate = va_arg(args, AST *);
+            node->f.a_if.conseq = va_arg(args, AST *);
+            node->f.a_if.altern = va_arg(args, AST *);
             break;
 
         case ast_while:
-            n->f.a_while.predicate = va_arg(ap, AST *);
-            n->f.a_while.body = va_arg(ap, AST *);
+            node->f.a_while.predicate = va_arg(args, AST *);
+            node->f.a_while.body = va_arg(args, AST *);
             break;
 
         case ast_for:
-            n->f.a_for.var = va_arg(ap, symbol_table_entry *);
-            n->f.a_for.lower_bound = va_arg(ap, AST *);
-            n->f.a_for.upper_bound = va_arg(ap, AST *);
-            n->f.a_for.body = va_arg(ap, AST *);
+            node->f.a_for.var = va_arg(args, symbol_table_entry *);
+            node->f.a_for.lower_bound = va_arg(args, AST *);
+            node->f.a_for.upper_bound = va_arg(args, AST *);
+            node->f.a_for.body = va_arg(args, AST *);
             break;
 
         case ast_read:
-            n->f.a_read.var = va_arg(ap, symbol_table_entry *);
+            node->f.a_read.var = va_arg(args, symbol_table_entry *);
             break;
 
         case ast_write:
-            n->f.a_write.var = va_arg(ap, symbol_table_entry *);
+            node->f.a_write.var = va_arg(args, symbol_table_entry *);
             break;
 
         case ast_call:
-            n->f.a_call.callee = va_arg(ap, symbol_table_entry *);
-            n->f.a_call.arg_list = va_arg(ap, ast_list *);
+            node->f.a_call.callee = va_arg(args, symbol_table_entry *);
+            node->f.a_call.arg_list = va_arg(args, ast_list *);
             break;
 
         case ast_block:
-            n->f.a_block.vars = va_arg(ap, ste_list *);
-            n->f.a_block.stmts = va_arg(ap, ast_list *);
+            node->f.a_block.vars = va_arg(args, ste_list *);
+            node->f.a_block.stmts = va_arg(args, ast_list *);
             break;
 
         case ast_return:
-            n->f.a_return.expr = va_arg(ap, AST *);
+            node->f.a_return.expr = va_arg(args, AST *);
             break;
 
         case ast_var:
-            n->f.a_var.var = va_arg(ap, symbol_table_entry *);
+            node->f.a_var.var = va_arg(args, symbol_table_entry *);
             break;
 
         case ast_integer:
-            n->f.a_integer.value = va_arg(ap, int);
+            node->f.a_integer.value = va_arg(args, int);
             break;
 
         case ast_float:
-            n->f.a_float.value = va_arg(ap, double); // va_arg promotes float to double
+            node->f.a_float.value = (float)va_arg(args, double); // Float is promoted to double in varargs
             break;
-            
+
         case ast_string:
-            n->f.a_string.string = va_arg(ap, char *);
+            node->f.a_string.string = va_arg(args, char *);
             break;
-            
+
         case ast_boolean:
-            n->f.a_boolean.value = va_arg(ap, int);
+            node->f.a_boolean.value = va_arg(args, int);
             break;
 
         case ast_times:
@@ -156,260 +169,256 @@ AST * make_ast_node(AST_type type, ...)
         case ast_or:
         case ast_cand:
         case ast_cor:
-            n->f.a_binary_op.larg = va_arg(ap, AST *);
-            n->f.a_binary_op.rarg = va_arg(ap, AST *);
+            node->f.a_binary_op.larg = va_arg(args, AST *);
+            node->f.a_binary_op.rarg = va_arg(args, AST *);
             break;
 
         case ast_not:
         case ast_uminus:
-            n->f.a_unary_op.arg = va_arg(ap, AST *);
+            node->f.a_unary_op.arg = va_arg(args, AST *);
             break;
 
         case ast_itof:
-            n->f.a_itof.arg = va_arg(ap, AST *);
+            node->f.a_itof.arg = va_arg(args, AST *);
             break;
-            
+
         case ast_eof:
+            // No arguments needed
             break;
+
+        default:
+            fatal_error("Unknown AST node type in make_ast_node");
+    }
+    
+    va_end(args);
+    return node;
+}
+
+// Evaluate a constant expression
+int eval_ast_expr(FileDescriptor *fd, AST *node) {
+    if (node == NULL) {
+        fatal_error("NULL AST in eval_ast_expr");
+    }
+    
+    switch (node->type) {
+        case ast_var:
+            if (node->f.a_var.var->IsConstant) {
+                return node->f.a_var.var->ConstValue;
+            } else {
+                fd->ReportError("Cannot use variables in constant expressions");
+                return 0;
+            }
+            
+        case ast_integer:
+            return node->f.a_integer.value;
+            
+        case ast_string:
+            fd->ReportError("Cannot use strings in constant expressions");
+            return 0;
+            
+        case ast_boolean:
+            return node->f.a_boolean.value;
+            
+        case ast_times:
+            return eval_ast_expr(fd, node->f.a_binary_op.larg) * 
+                   eval_ast_expr(fd, node->f.a_binary_op.rarg);
+                   
+        case ast_divide:
+            {
+                int divisor = eval_ast_expr(fd, node->f.a_binary_op.rarg);
+                if (divisor == 0) {
+                    fd->ReportError("Division by zero in constant expression");
+                    return 0;
+                }
+                return eval_ast_expr(fd, node->f.a_binary_op.larg) / divisor;
+            }
+            
+        case ast_plus:
+            return eval_ast_expr(fd, node->f.a_binary_op.larg) + 
+                   eval_ast_expr(fd, node->f.a_binary_op.rarg);
+                   
+        case ast_minus:
+            return eval_ast_expr(fd, node->f.a_binary_op.larg) - 
+                   eval_ast_expr(fd, node->f.a_binary_op.rarg);
+                   
+        case ast_eq:
+            return eval_ast_expr(fd, node->f.a_binary_op.larg) == 
+                   eval_ast_expr(fd, node->f.a_binary_op.rarg);
+                   
+        case ast_neq:
+            return eval_ast_expr(fd, node->f.a_binary_op.larg) != 
+                   eval_ast_expr(fd, node->f.a_binary_op.rarg);
+                   
+        case ast_lt:
+            return eval_ast_expr(fd, node->f.a_binary_op.larg) < 
+                   eval_ast_expr(fd, node->f.a_binary_op.rarg);
+                   
+        case ast_le:
+            return eval_ast_expr(fd, node->f.a_binary_op.larg) <= 
+                   eval_ast_expr(fd, node->f.a_binary_op.rarg);
+                   
+        case ast_gt:
+            return eval_ast_expr(fd, node->f.a_binary_op.larg) > 
+                   eval_ast_expr(fd, node->f.a_binary_op.rarg);
+                   
+        case ast_ge:
+            return eval_ast_expr(fd, node->f.a_binary_op.larg) >= 
+                   eval_ast_expr(fd, node->f.a_binary_op.rarg);
+                   
+        case ast_and:
+        case ast_cand:
+            return eval_ast_expr(fd, node->f.a_binary_op.larg) && 
+                   eval_ast_expr(fd, node->f.a_binary_op.rarg);
+                   
+        case ast_or:
+        case ast_cor:
+            return eval_ast_expr(fd, node->f.a_binary_op.larg) || 
+                   eval_ast_expr(fd, node->f.a_binary_op.rarg);
+                   
+        case ast_not:
+            return !eval_ast_expr(fd, node->f.a_unary_op.arg);
+            
+        case ast_uminus:
+            return -eval_ast_expr(fd, node->f.a_unary_op.arg);
             
         default:
-            fatal_error("Unknown type of AST node in make_ast_node");
-    }
-    va_end(ap);
-    return n;
-}
-//////////////////////////////////////////////////////////////////////
-/* Evaluate a constant expression represented as an AST. Return an
-integer value. Errors are reported as errors in the user's program. */
-int eval_ast_expr(FileDescriptor *fd, AST *n)
-{
-    if (n == NULL)
-        fatal_error("NULL AST in eval_ast_expr");
-        
-    switch (n->type)
-    {
-    case ast_var:
-        if (n->f.a_var.var->Type == STE_ROUTINE) // Assuming STE_ROUTINE is your constant type
-            return ste_const_value(n->f.a_var.var);
-        else {
-            fd->ReportError((char*)"Cannot use variables in constant expressions");
+            fd->ReportError("Unknown AST node type in eval_ast_expr");
             return 0;
-        }
-        
-    case ast_integer:
-        return n->f.a_integer.value;
-        
-    case ast_string:
-        fd->ReportError((char*)"Cannot use strings in constant expressions");
-        return 0;
-        
-    case ast_boolean:
-        return n->f.a_boolean.value;
-        
-    case ast_times:
-        return (eval_ast_expr(fd, n->f.a_binary_op.larg)
-                * eval_ast_expr(fd, n->f.a_binary_op.rarg));
-                
-    case ast_divide:
-        return (eval_ast_expr(fd, n->f.a_binary_op.larg)
-                / eval_ast_expr(fd, n->f.a_binary_op.rarg));
-                
-    case ast_plus:
-        return (eval_ast_expr(fd, n->f.a_binary_op.larg)
-            + eval_ast_expr(fd, n->f.a_binary_op.rarg));
-            
-    case ast_minus:
-        return (eval_ast_expr(fd, n->f.a_binary_op.larg)
-            - eval_ast_expr(fd, n->f.a_binary_op.rarg));
-            
-    case ast_eq:
-        return (eval_ast_expr(fd, n->f.a_binary_op.larg)
-            == eval_ast_expr(fd, n->f.a_binary_op.rarg));
-            
-    case ast_neq:
-        return (eval_ast_expr(fd, n->f.a_binary_op.larg)
-            != eval_ast_expr(fd, n->f.a_binary_op.rarg));
-            
-    case ast_lt:
-        return (eval_ast_expr(fd, n->f.a_binary_op.larg)
-            < eval_ast_expr(fd, n->f.a_binary_op.rarg));
-            
-    case ast_le:
-        return (eval_ast_expr(fd, n->f.a_binary_op.larg)
-            <= eval_ast_expr(fd, n->f.a_binary_op.rarg));
-            
-    case ast_gt:
-        return (eval_ast_expr(fd, n->f.a_binary_op.larg)
-            > eval_ast_expr(fd, n->f.a_binary_op.rarg));
-            
-    case ast_ge:
-        return (eval_ast_expr(fd, n->f.a_binary_op.larg)
-            >= eval_ast_expr(fd, n->f.a_binary_op.rarg));
-            
-    case ast_and:
-        return (eval_ast_expr(fd, n->f.a_binary_op.larg)
-            & eval_ast_expr(fd, n->f.a_binary_op.rarg));
-            
-    case ast_or:
-        return (eval_ast_expr(fd, n->f.a_binary_op.larg)
-            | eval_ast_expr(fd, n->f.a_binary_op.rarg));
-            
-    case ast_cand:
-        return (eval_ast_expr(fd, n->f.a_binary_op.larg)
-            & eval_ast_expr(fd, n->f.a_binary_op.rarg));
-            
-    case ast_cor:
-        return (eval_ast_expr(fd, n->f.a_binary_op.larg)
-            | eval_ast_expr(fd, n->f.a_binary_op.rarg));
-            
-    case ast_not:
-        return (~eval_ast_expr(fd, n->f.a_unary_op.arg));
-        
-    case ast_uminus:
-        return (- eval_ast_expr(fd, n->f.a_unary_op.arg));
-        
-    default:
-        fatal_error("Unknown AST node in eval_ast_expr");
-        return 0; 
     }
 }
-/////////////////////////////////////////////////////////////////////
-/* Print (to the file F) the AST N. This routine doesn't try very hard
-to format the output. */
-void print_ast_node(FILE *f, AST *n)
-{
-    p_a_n(f, n, 0);
+
+// Print an AST node
+void print_ast_node(FILE *fp, AST *node) {
+    p_a_n(fp, node, 0);
 }
-///////////////////////////////////////////////////////////////////////
-static void p_a_n(FILE *f, AST *n, int d)
-{
-    if (n == NULL) return;
+
+// Internal printing function with indentation
+static void p_a_n(FILE *fp, AST *node, int indent) {
+    if (node == NULL) return;
     
-    switch (n->type) {
+    switch (node->type) {
         case ast_var_decl:
-            fprintf(f, "var %s: %s;", ste_name(n->f.a_var_decl.name),
-                    type_names[n->f.a_var_decl.type]);
-            nl_indent(f, d);
+            fprintf(fp, "var %s: %s;", ste_name(node->f.a_var_decl.name),
+                   type_names[node->f.a_var_decl.type]);
+            nl_indent(fp, indent);
             break;
             
         case ast_const_decl:
-            fprintf(f, "constant %s = %d;", ste_name(n->f.a_const_decl.name),
-                    n->f.a_const_decl.value);
-            nl_indent(f, d); 
+            fprintf(fp, "constant %s = %d;", ste_name(node->f.a_const_decl.name),
+                   node->f.a_const_decl.value);
+            nl_indent(fp, indent);
             break;
             
         case ast_routine_decl:
-            { 
-                if (n->f.a_routine_decl.result_type == type_none)
-                    fprintf(f, "procedure %s (", ste_name(n->f.a_routine_decl.name));
-                else 
-                    fprintf(f, "function %s (", ste_name(n->f.a_routine_decl.name));
-                    
-                print_ste_list(f, n->f.a_routine_decl.formals, "", ", ", -1);
+            if (node->f.a_routine_decl.result_type == type_none)
+                fprintf(fp, "procedure %s (", ste_name(node->f.a_routine_decl.name));
+            else
+                fprintf(fp, "function %s (", ste_name(node->f.a_routine_decl.name));
                 
-                if (n->f.a_routine_decl.result_type == type_none){
-                    fprintf(f, ")");
-                    nl_indent(f, d + 2);
-                } else {
-                    fprintf(f, ") : %s",
-                        type_names[n->f.a_routine_decl.result_type]);
-                    nl_indent(f, d + 2);
-                } 
-                
-                p_a_n(f, n->f.a_routine_decl.body, d + 2);
-                fprintf(f, ";");
-                nl_indent(f, d);
-                break;
+            print_ste_list(fp, node->f.a_routine_decl.formals, "", ", ", -1);
+            
+            if (node->f.a_routine_decl.result_type == type_none) {
+                fprintf(fp, ")");
+                nl_indent(fp, indent + 2);
+            } else {
+                fprintf(fp, ") : %s", type_names[node->f.a_routine_decl.result_type]);
+                nl_indent(fp, indent + 2);
             }
             
+            p_a_n(fp, node->f.a_routine_decl.body, indent + 2);
+            fprintf(fp, ";");
+            nl_indent(fp, indent);
+            break;
+            
         case ast_assign:
-            fprintf(f, "%s := ", ste_name(n->f.a_assign.lhs));
-            p_a_n(f, n->f.a_assign.rhs, d);
+            fprintf(fp, "%s := ", ste_name(node->f.a_assign.lhs));
+            p_a_n(fp, node->f.a_assign.rhs, indent);
             break;
             
         case ast_if:
-            fprintf(f, "if ");
-            p_a_n(f, n->f.a_if.predicate, d);
-            fprintf(f, " then");
-            nl_indent(f, d + 2);
-            p_a_n(f, n->f.a_if.conseq, d + 2);
-            if (n->f.a_if.altern != NULL){ 
-                nl_indent(f, d);
-                fprintf(f, "else");
-                nl_indent(f, d + 2);
-                p_a_n(f, n->f.a_if.altern, d + 2);
+            fprintf(fp, "if ");
+            p_a_n(fp, node->f.a_if.predicate, indent);
+            fprintf(fp, " then");
+            nl_indent(fp, indent + 2);
+            p_a_n(fp, node->f.a_if.conseq, indent + 2);
+            
+            if (node->f.a_if.altern != NULL) {
+                nl_indent(fp, indent);
+                fprintf(fp, "else");
+                nl_indent(fp, indent + 2);
+                p_a_n(fp, node->f.a_if.altern, indent + 2);
             }
             break;
             
         case ast_while:
-            fprintf(f, "while ");
-            p_a_n(f, n->f.a_while.predicate, d);
-            fprintf(f, " do");
-            nl_indent(f, d + 2);
-            p_a_n(f, n->f.a_while.body, d + 2);
-            nl_indent(f, d);
-            fprintf(f, "od");
+            fprintf(fp, "while ");
+            p_a_n(fp, node->f.a_while.predicate, indent);
+            fprintf(fp, " do");
+            nl_indent(fp, indent + 2);
+            p_a_n(fp, node->f.a_while.body, indent + 2);
+            nl_indent(fp, indent);
+            fprintf(fp, "od");
             break;
             
         case ast_for:
-            fprintf(f, "for %s = ", ste_name(n->f.a_for.var));
-            p_a_n(f, n->f.a_for.lower_bound, d); 
-            fprintf(f, " to "); 
-            p_a_n(f, n->f.a_for.upper_bound, d);
-            fprintf(f, " do");
-            nl_indent(f, d + 2);
-            p_a_n(f, n->f.a_for.body, d + 2);
-            nl_indent(f, d);
-            fprintf(f, "od");
+            fprintf(fp, "for %s := ", ste_name(node->f.a_for.var));
+            p_a_n(fp, node->f.a_for.lower_bound, indent);
+            fprintf(fp, " to ");
+            p_a_n(fp, node->f.a_for.upper_bound, indent);
+            fprintf(fp, " do");
+            nl_indent(fp, indent + 2);
+            p_a_n(fp, node->f.a_for.body, indent + 2);
+            nl_indent(fp, indent);
+            fprintf(fp, "od");
             break;
             
         case ast_read:
-            fprintf(f, "read (%s)", ste_name(n->f.a_read.var));
-            break; 
+            fprintf(fp, "read(%s)", ste_name(node->f.a_read.var));
+            break;
             
         case ast_write:
-            fprintf(f, "write (%s)", ste_name(n->f.a_write.var));
-            break; 
+            fprintf(fp, "write(%s)", ste_name(node->f.a_write.var));
+            break;
             
         case ast_call:
-            fprintf(f, "%s (", ste_name(n->f.a_call.callee));
-            print_ast_list(f, n->f.a_call.arg_list, ", ", -1);
-            fprintf(f, ")");
+            fprintf(fp, "%s(", ste_name(node->f.a_call.callee));
+            print_ast_list(fp, node->f.a_call.arg_list, ", ", -1);
+            fprintf(fp, ")");
             break;
             
         case ast_block:
-            fprintf(f, "begin");
-            nl_indent(f, d + 2);
-            print_ste_list(f, n->f.a_block.vars, "var ", "", d + 2);
-            print_ast_list(f, n->f.a_block.stmts, ";", d + 2);
-            nl_indent(f, d);
-            fprintf(f, "end");
+            fprintf(fp, "begin");
+            nl_indent(fp, indent + 2);
+            print_ste_list(fp, node->f.a_block.vars, "var ", "", indent + 2);
+            print_ast_list(fp, node->f.a_block.stmts, ";", indent + 2);
+            nl_indent(fp, indent);
+            fprintf(fp, "end");
             break;
             
         case ast_return:
-            fprintf(f, "return (");
-            p_a_n(f, n->f.a_return.expr, d);
-            fprintf(f, ")");
+            fprintf(fp, "return(");
+            p_a_n(fp, node->f.a_return.expr, indent);
+            fprintf(fp, ")");
             break;
             
         case ast_var:
-            fprintf(f, "%s", ste_name(n->f.a_var.var));
-            break; 
+            fprintf(fp, "%s", ste_name(node->f.a_var.var));
+            break;
             
         case ast_integer:
-            fprintf(f, "%d", n->f.a_integer.value);
-            break; 
+            fprintf(fp, "%d", node->f.a_integer.value);
+            break;
             
         case ast_float:
-            fprintf(f, "%f", n->f.a_float.value);
-            break; 
+            fprintf(fp, "%f", node->f.a_float.value);
+            break;
             
         case ast_string:
-            fprintf(f, "\"%s\"", n->f.a_string.string);
+            fprintf(fp, "\"%s\"", node->f.a_string.string);
             break;
             
         case ast_boolean:
-            fprintf(f, n->f.a_boolean.value ? "true" : "false");
+            fprintf(fp, node->f.a_boolean.value ? "true" : "false");
             break;
             
         case ast_times:
@@ -426,137 +435,82 @@ static void p_a_n(FILE *f, AST *n, int d)
         case ast_or:
         case ast_cand:
         case ast_cor:
-            fprintf(f, "(");
-            p_a_n(f, n->f.a_binary_op.larg, d);
-            switch (n->type) {
-                case ast_times:
-                    fprintf(f, " * ");
-                    break;
-                case ast_divide:
-                    fprintf(f, " / ");
-                    break;
-                case ast_plus:
-                    fprintf(f, " + ");
-                    break;
-                case ast_minus:
-                    fprintf(f, " - ");
-                    break;
-                case ast_eq:
-                    fprintf(f, " = ");
-                    break;
-                case ast_neq:
-                    fprintf(f, " != ");
-                    break;
-                case ast_lt:
-                    fprintf(f, " < ");
-                    break;
-                case ast_le:
-                    fprintf(f, " <= ");
-                    break;
-                case ast_gt:
-                    fprintf(f, " > ");
-                    break;
-                case ast_ge:
-                    fprintf(f, " >= ");
-                    break;
-                case ast_and:
-                    fprintf(f, " and ");
-                    break;
-                case ast_or:
-                    fprintf(f, " or ");
-                    break;
-                case ast_cand:
-                    fprintf(f, " cand ");
-                    break;
-                case ast_cor:
-                    fprintf(f, " cor ");
-                    break;
-                default:
-                    break;
+            fprintf(fp, "(");
+            p_a_n(fp, node->f.a_binary_op.larg, indent);
+            
+            switch (node->type) {
+                case ast_times:   fprintf(fp, " * ");  break;
+                case ast_divide:  fprintf(fp, " / ");  break;
+                case ast_plus:    fprintf(fp, " + ");  break;
+                case ast_minus:   fprintf(fp, " - ");  break;
+                case ast_eq:      fprintf(fp, " = ");  break;
+                case ast_neq:     fprintf(fp, " != "); break;
+                case ast_lt:      fprintf(fp, " < ");  break;
+                case ast_le:      fprintf(fp, " <= "); break;
+                case ast_gt:      fprintf(fp, " > ");  break;
+                case ast_ge:      fprintf(fp, " >= "); break;
+                case ast_and:     fprintf(fp, " and "); break;
+                case ast_or:      fprintf(fp, " or ");  break;
+                case ast_cand:    fprintf(fp, " cand "); break;
+                case ast_cor:     fprintf(fp, " cor ");  break;
+                default: break;
             }
-            p_a_n(f, n->f.a_binary_op.rarg, d);
-            fprintf(f, ")");
+            
+            p_a_n(fp, node->f.a_binary_op.rarg, indent);
+            fprintf(fp, ")");
             break;
             
         case ast_not:
-            fprintf(f, "(not ");
-            p_a_n(f, n->f.a_unary_op.arg, d);
-            fprintf(f, ")");
+            fprintf(fp, "(not ");
+            p_a_n(fp, node->f.a_unary_op.arg, indent);
+            fprintf(fp, ")");
             break;
             
         case ast_uminus:
-            fprintf(f, "(-");
-            p_a_n(f, n->f.a_unary_op.arg, d);
-            fprintf(f, ")");
+            fprintf(fp, "(-");
+            p_a_n(fp, node->f.a_unary_op.arg, indent);
+            fprintf(fp, ")");
             break;
             
         case ast_eof:
-            fprintf(f, "EOF");
+            fprintf(fp, "EOF");
             break;
             
         default:
-            fatal_error("Unknown AST node type");
-    } 
+            fprintf(fp, "Unknown AST node type: %d", node->type);
+            break;
+    }
 }
-///////////////////////////////////////////////////
-/* Print a list of AST nodes. */
-static void print_ast_list(FILE *f, ast_list *L, char *sep, int d)
-{
-    for ( ; L != NULL; L = L->tail){
-        p_a_n(f, L->head, d);
-        if (L->tail || d>0){
-            fprintf(f, "%s", sep);
-            if (L->tail && d >= 0) nl_indent(f, d);
+
+// Print a list of AST nodes
+static void print_ast_list(FILE *fp, ast_list *list, const char *separator, int indent) {
+    for (; list != NULL; list = list->tail) {
+        p_a_n(fp, list->head, indent);
+        if (list->tail || indent > 0) {
+            fprintf(fp, "%s", separator);
+            if (list->tail && indent >= 0) nl_indent(fp, indent);
         }
     }
 }
-////////////////////////////////////////////////////////////////
-/* Print a list of symbol table entries along with their types. */
-static void
-print_ste_list(FILE *f, ste_list *L, char *prefix, char *sep, int d)
-{ 
-    for ( ; L != NULL; L = L->tail) {
-        fprintf(f, "%s%s : %s", prefix, ste_name(L->head),
-                type_names[ste_var_type(L->head)]);
-        if (L->tail || d >= 0) fprintf(f, "%s", sep);
-        if (d >= 0) nl_indent(f, d);
+
+// Print a list of symbol table entries
+static void print_ste_list(FILE *fp, ste_list *list, const char *prefix, const char *separator, int indent) {
+    for (; list != NULL; list = list->tail) {
+        fprintf(fp, "%s%s : %s", prefix, ste_name(list->head),
+               type_names[ste_var_type(list->head)]);
+               
+        if (list->tail || indent >= 0) fprintf(fp, "%s", separator);
+        if (indent >= 0) nl_indent(fp, indent);
     }
 }
-///////////////////////////////////////////////////
-/* Print a newline and indent D space. */
-static void nl_indent(FILE *f, int d)
-{
-    fprintf(f, "\n");
-    while (d-- > 0) fprintf(f, " ");
+
+// Print a newline and indent
+static void nl_indent(FILE *fp, int indent) {
+    fprintf(fp, "\n");
+    for (int i = 0; i < indent; i++) {
+        fprintf(fp, " ");
+    }
 }
-
-/* List construction helper functions */
-ast_list *cons_ast(AST *head, ast_list *tail)
-{
-    ast_list *cell = new ast_list;
-    if (cell == NULL) fatal_error("out of memory in cons_ast");
-    cell->head = head;
-    cell->tail = tail;
-    return cell;
-}
-
-ste_list *cons_ste(symbol_table_entry *head, ste_list *tail)
-{
-    ste_list *cell = new ste_list;
-    if (cell == NULL) fatal_error("out of memory in cons_ste");
-    cell->head = head;
-    cell->tail = tail;
-    return cell;
-}
-
-
-
-
-
-
-
-
-
 
 
 

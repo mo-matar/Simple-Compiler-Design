@@ -6,7 +6,7 @@
 #include "symbol.h"
 
 class Parser {
-private:
+public:
     // Members
     TOKEN* lookahead;  // Lookahead token for parsing
     Scanner* scanner;  // Scanner instance for tokenization

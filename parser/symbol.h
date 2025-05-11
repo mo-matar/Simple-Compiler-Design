@@ -50,6 +50,7 @@ public:
     
     // Scope-aware symbol lookup
     STEntry* LookupSymbol(char *str); // Look up a symbol in this and parent scopes
+
 };
 
 // Global symbol table management functions

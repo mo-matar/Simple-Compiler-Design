@@ -198,11 +198,7 @@ SymbolTable* SymbolTable::enter_scope() {
 
 // Exit current scope and return parent
 SymbolTable* SymbolTable::exit_scope() {
-    return next;
-}
-
-// Get parent scope without exiting
-SymbolTable* SymbolTable::get_parent_scope() {
+    // This method returns the parent scope (next)
     return next;
 }
 

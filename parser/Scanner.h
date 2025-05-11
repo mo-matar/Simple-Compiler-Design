@@ -110,6 +110,7 @@ public:
     TOKEN* get_string(char firstChar);
     TOKEN* get_int(char firstChar, char sign);
     TOKEN* get_float(char firstChar, char* buffer, int position);
+    void unGetToken(TOKEN* token);
 
     // Helper methods
     bool checkKeyword(const char* keyString);
