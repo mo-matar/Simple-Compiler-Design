@@ -63,6 +63,9 @@ public:    // Members
 
     Parser(FileDescriptor* fd);
     ~Parser();
+
+private:
+    STEntry* checkAndAddSymbol(TOKEN* idToken, STE_TYPE steType);
 };
 
 #endif // PARSER_H

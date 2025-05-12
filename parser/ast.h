@@ -81,7 +81,7 @@ typedef struct ast_node
 	
 	 struct{
 			symbol_table_entry *name; /* Constant's symbol table entry */
-			int value; /* Evaluated value of constant */
+			struct ast_node *value; /* Expression for the constant's value (not just an int) */
 	 } a_const_decl;
 	
 	 struct{

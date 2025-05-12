@@ -72,7 +72,8 @@ AST *make_ast_node(AST_type type, ...) {
     
     node->type = type;
     
-    switch (type) {        case ast_var_decl:
+    switch (type) {        
+        case ast_var_decl:
             node->f.a_var_decl.name = va_arg(args, symbol_table_entry *);
             // Fix: j_type is promoted to int when passed through varargs
             node->f.a_var_decl.type = (j_type)va_arg(args, int);
@@ -80,8 +81,10 @@ AST *make_ast_node(AST_type type, ...) {
 
         case ast_const_decl:
             node->f.a_const_decl.name = va_arg(args, symbol_table_entry *);
-            node->f.a_const_decl.value = va_arg(args, int);
-            break;        case ast_routine_decl:
+            node->f.a_const_decl.value = va_arg(args, AST *);
+            break;
+
+        case ast_routine_decl:
             node->f.a_routine_decl.name = va_arg(args, symbol_table_entry *);
             node->f.a_routine_decl.formals = va_arg(args, ste_list *);
             // Fix: j_type is promoted to int when passed through varargs
@@ -307,8 +310,9 @@ static void p_a_n(FILE *fp, AST *node, int indent) {
             break;
             
         case ast_const_decl:
-            fprintf(fp, "constant %s = %d;", ste_name(node->f.a_const_decl.name),
-                   node->f.a_const_decl.value);
+            fprintf(fp, "constant %s = ", ste_name(node->f.a_const_decl.name));
+            p_a_n(fp, node->f.a_const_decl.value, indent);
+            fprintf(fp, ";");
             nl_indent(fp, indent);
             break;
             
