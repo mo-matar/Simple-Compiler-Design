@@ -1,129 +1,75 @@
-//
-// Created by momo on 3/3/2025.
-//
-
-#ifndef TEST_SCANNER_H
-#define TEST_SCANNER_H
-
-
-
+#ifndef COMPILERPARSER_SCANNER_H
+#define COMPILERPARSER_SCANNER_H
 
 #include "FileDescriptor.h"
-#include <string>
+#define LETTER_CHAR 1
+#define NUMERIC_DIGIT 2
+#define SEPARATOR 3
+#define OPERATOR 4
+#define SPECIAL_CHAR 5
+#define COMMENT_MARKER 6
 
-// Token types enumeration - Organized more systematically
+// Token types enumeration
 typedef enum {
     /* Literals */
-    lx_identifier,  // Variable names, function names, etc.
-    lx_integer,     // Integer constants like 123
-    lx_string,      // String literals like "hello"
-    lx_float,       // Float constants like 3.14
-
+    lx_identifier, lx_integer, lx_string, lx_float,
     /* Keywords */
-    kw_program,     // 'program' keyword
-    kw_var,         // 'var' keyword
-    kw_constant,    // 'constant' keyword
-    kw_integer,     // 'integer' type keyword
-    kw_bool,        // 'bool' type keyword
-    kw_string,      // 'string' type keyword
-    kw_float,       // 'float' type keyword
-    kw_true,        // 'true' boolean literal
-    kw_false,       // 'false' boolean literal
-    kw_if,          // 'if' conditional
-    kw_fi,          // 'fi' end of conditional
-    kw_then,        // 'then' clause
-    kw_else,        // 'else' clause
-    kw_while,       // 'while' loop
-    kw_do,          // 'do' block
-    kw_od,          // 'od' end of do block
-    kw_and,         // 'and' logical operator
-    kw_or,          // 'or' logical operator
-    kw_read,        // 'read' input operator
-    kw_write,       // 'write' output operator
-    kw_for,         // 'for' loop
-    kw_from,        // 'from' range specification
-    kw_to,          // 'to' range specification
-    kw_by,          // 'by' step specification
-    kw_function,    // 'function' declaration
-    kw_procedure,   // 'procedure' declaration
-    kw_return,      // 'return' statement
-    kw_not,         // 'not' logical operator
-    kw_begin,       // 'begin' block
-    kw_end,         // 'end' block
+    kw_program, kw_var, kw_constant, kw_integer, kw_bool, kw_string, kw_float,
+    kw_true, kw_false, kw_if, kw_fi, kw_then, kw_else, kw_while, kw_do, kw_od,
+    kw_and, kw_or, kw_read, kw_write, kw_for, kw_from, kw_to, kw_by,
+    kw_function, kw_procedure, kw_return, kw_not, kw_begin, kw_end,
+    /* Operators */
+    lx_lparen, lx_rparen, lx_lbracket, lx_rbracket, lx_lsbracket, lx_rsbracket,
+    lx_colon, lx_dot, lx_semicolon, lx_comma, lx_colon_eq,
+    lx_plus, lx_minus, lx_star, lx_slash,
+    lx_eq, lx_neq, lx_lt, lx_le, lx_gt, lx_ge, lx_eof,
+    illegal_token
 
-    /* Operators and Punctuation */
-    lx_lparen,      // Left parenthesis '('
-    lx_rparen,      // Right parenthesis ')'
-    lx_lbracket,    // Left brace '{'
-    lx_rbracket,    // Right brace '}'
-    lx_lsbracket,   // Left square bracket '['
-    lx_rsbracket,   // Right square bracket ']'
-    lx_colon,       // Colon ':'
-    lx_dot,         // Dot '.'
-    lx_semicolon,   // Semicolon ';'
-    lx_comma,       // Comma ','
-    lx_colon_eq,    // Assignment ':='
-    lx_plus,        // Addition '+'
-    lx_minus,       // Subtraction '-'
-    lx_star,        // Multiplication '*'
-    lx_slash,       // Division '/'
-    lx_eq,          // Equal '='
-    lx_neq,         // Not equal '!='
-    lx_lt,          // Less than '<'
-    lx_le,          // Less than or equal '<='
-    lx_gt,          // Greater than '>'
-    lx_ge,          // Greater than or equal '>='
-    lx_eof,         // End of file
-
-    illegal_token   // Invalid token
 } LEXEME_TYPE;
 
-/**
- * @class TOKEN
- * @brief Represents a token in the language
- */
-class TOKEN {
+class TOKEN
+        {
 public:
-    LEXEME_TYPE type;  // Type of the token
-    std::string str_ptr; // Token's lexeme (textual representation)
+    LEXEME_TYPE type;
+    int value;  // can be used instead of the str_ptr for IDs and strings
+    float float_value;
+    char *str_ptr;
 
-    // Constructor
-    TOKEN() : type(illegal_token), str_ptr("") {}
+    TOKEN(){
+        str_ptr = new char[1024];
+        str_ptr[0] = '\0';
+    }
+    ~TOKEN() {
+        delete[] str_ptr;
+    }
 };
 
-/**
- * @class Scanner
- * @brief Lexical analyzer for the programming language
- */
-class Scanner {
+class Scanner{
 public:
-    // Constructors and destructor
-    Scanner(char *nameOfFile);
-    Scanner(FileDescriptor *fileDescriptor);
-    ~Scanner();
-
-    // Main scanning function
-    TOKEN* Scan();
-
-    // Token recognition methods
-    TOKEN* get_id(char firstChar);
-    TOKEN* get_string(char firstChar);
-    TOKEN* get_int(char firstChar, char sign);
-    TOKEN* get_float(char firstChar, char* buffer, int position);
-    void unGetToken(TOKEN* token);
-
-    // Helper methods
-    bool checkKeyword(const char* keyString);
-    void skipComments();
-    void skipSpaces(char startChar);
-    bool isSpace(char c);
-    bool isStartID(char c);
-
-    // File handling
+    int privousType;
+    bool readMore;
+    TOKEN* lastToken;
     FileDescriptor *fd;
 
+    Scanner(FileDescriptor *fd){
+        this->fd = fd;
+    }
+
+    ~Scanner();
+    TOKEN* Scan();
+    TOKEN* getId(char c);
+    TOKEN* getString(char c);
+    TOKEN* getInt(char c);
+    int checkKeyword(char* key);
+    void skipComments(char &c);
+    void skipSpaces(char &c);
+    TOKEN* getLastToken();
+    int getLineNum();
+    int getClass(char c);
+    TOKEN *getOperator(char c);
+    FileDescriptor* Get_fd();
+
 private:
-    // Private data and methods can be added here
 };
 
-#endif //TEST_SCANNER_H
+#endif //COMPILERPARSER_SCANNER_H

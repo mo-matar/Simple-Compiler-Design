@@ -64,6 +64,7 @@ typedef enum
 	ast_eof, /* End of File */
 	ast_float, /* float */
 	ast_itof, /* convert integr to float */
+	ast_program /* Program node */
 } AST_type;
 
 ///////////////////////////////////////////////////////////////////////
@@ -169,6 +170,10 @@ typedef struct ast_node
 	 struct {
 		struct ast_node *arg;
 	 } a_itof; 
+
+	 struct {
+		ast_list *statements; /* List of statements in the program */
+	 } a_program; 
   
  } f;  // union 
 } AST; // AST structure

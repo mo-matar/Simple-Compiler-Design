@@ -10,4 +10,8 @@ begin
     read(x)
   else
     read(y);
+  if (x > y) then
+    read(x)
+  else
+    read(y);
 end

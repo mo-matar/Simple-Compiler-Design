@@ -93,13 +93,17 @@ char FileDescriptor::GetChar() {
     if (flag == SET) {
         flag = UNSET;
         char_number++;
-        return buffer[char_number - 1];
+        char ch = buffer[char_number - 1];
+        std::cout << "GetChar: Returning ungot char: '" << ch << "' (ASCII: " << (int)ch << ")" << std::endl;
+        return ch;
     }
 
     // Check if we need to read a new line
     if (buffer[char_number] == '\0') {
         // Reached end of line, read next line
+        std::cout << "GetChar: End of current line, reading next line..." << std::endl;
         if (fp == nullptr || feof(fp)) {
+            std::cout << "GetChar: End of file reached." << std::endl;
             return EOF;
         }
 

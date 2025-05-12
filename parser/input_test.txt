@@ -1,0 +1,3 @@
+var x : integer;
+var y : integer;
+var z : integer;

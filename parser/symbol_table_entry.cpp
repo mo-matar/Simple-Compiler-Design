@@ -16,6 +16,7 @@ STEntry::STEntry() {
     Type = STE_NONE;
     Name[0] = 0; // empty String
     Size = 0; // size in bytes
+    Line = 0;
     
     // Initialize new fields
     ConstValue = 0;
@@ -30,11 +31,13 @@ STEntry::STEntry() {
  * @param name : Name of the entry
  * @param type : Type of the entry
  */
-STEntry::STEntry(const char* name, STE_TYPE type) {
+STEntry::STEntry(const char* name, STE_TYPE type, int line) {
     Next = NULL;
     Type = type;
     strcpy(Name, name);
     Size = getTypeSize(type);
+    Line = line;
+
     
     // Initialize new fields
     ConstValue = 0;

@@ -72,21 +72,20 @@ AST *make_ast_node(AST_type type, ...) {
     
     node->type = type;
     
-    switch (type) {
-        case ast_var_decl:
+    switch (type) {        case ast_var_decl:
             node->f.a_var_decl.name = va_arg(args, symbol_table_entry *);
-            node->f.a_var_decl.type = va_arg(args, j_type);
+            // Fix: j_type is promoted to int when passed through varargs
+            node->f.a_var_decl.type = (j_type)va_arg(args, int);
             break;
 
         case ast_const_decl:
             node->f.a_const_decl.name = va_arg(args, symbol_table_entry *);
             node->f.a_const_decl.value = va_arg(args, int);
-            break;
-
-        case ast_routine_decl:
+            break;        case ast_routine_decl:
             node->f.a_routine_decl.name = va_arg(args, symbol_table_entry *);
             node->f.a_routine_decl.formals = va_arg(args, ste_list *);
-            node->f.a_routine_decl.result_type = va_arg(args, j_type);
+            // Fix: j_type is promoted to int when passed through varargs
+            node->f.a_routine_decl.result_type = (j_type)va_arg(args, int);
             node->f.a_routine_decl.body = va_arg(args, AST *);
             break;
 
@@ -184,6 +183,10 @@ AST *make_ast_node(AST_type type, ...) {
 
         case ast_eof:
             // No arguments needed
+            break;
+
+        case ast_program:
+            node->f.a_program.statements = va_arg(args, ast_list *);
             break;
 
         default:
@@ -471,7 +474,12 @@ static void p_a_n(FILE *fp, AST *node, int indent) {
             p_a_n(fp, node->f.a_unary_op.arg, indent);
             fprintf(fp, ")");
             break;
-            
+              case ast_program:
+            fprintf(fp, "program");
+            nl_indent(fp, indent + 2);
+            print_ast_list(fp, node->f.a_program.statements, "", indent + 2);  // Use empty separator
+            break;
+
         case ast_eof:
             fprintf(fp, "EOF");
             break;
@@ -486,9 +494,9 @@ static void p_a_n(FILE *fp, AST *node, int indent) {
 static void print_ast_list(FILE *fp, ast_list *list, const char *separator, int indent) {
     for (; list != NULL; list = list->tail) {
         p_a_n(fp, list->head, indent);
-        if (list->tail || indent > 0) {
+        // Only add separator, no newline needed as p_a_n already adds a newline for var_decl nodes
+        if (list->tail && (separator[0] != '\0')) {
             fprintf(fp, "%s", separator);
-            if (list->tail && indent >= 0) nl_indent(fp, indent);
         }
     }
 }

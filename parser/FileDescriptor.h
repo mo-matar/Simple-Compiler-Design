@@ -12,7 +12,7 @@
 using namespace std;
 
 class FileDescriptor {
-private:
+public:
     FILE *fp;
     int line_number;    // line number in the file
     int char_number;    // character number in the line
@@ -22,7 +22,6 @@ private:
     char *file;         // file name, allocate memory for this
     int flag2;          // additional flag
 
-public:
     // Constructor for opening a specific file
     FileDescriptor(const char *FileName);
 

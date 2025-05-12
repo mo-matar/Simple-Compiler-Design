@@ -6,12 +6,14 @@
 
 // Symbol Table class
 class SymbolTable {
-private:
+public:
     static const int DEFAULT_SIZE = 19;
     
     STList *slots;            // Pointer to array of STList objects
     int fold_case;            // Non-zero => fold upper to lower case
     int table_size;           // Size of the hash table
+    
+
     
     // Statistics on hash table effectiveness
     int number_entries;       // Number of entries in table
@@ -19,6 +21,8 @@ private:
     int number_hits;          // Number of hits (entries found)
     int max_search_dist;      // Maximum entries searched
     SymbolTable *next;        // To be used to create a stack of symbol table
+        SymbolTable *current_scope; // Pointer to the current scope
+
     
     // Hash function
     unsigned long hash(char *str);
@@ -26,16 +30,14 @@ private:
     // Helper method to fold case if needed
     char* processString(char *str);
 
-public:
     SymbolTable();            // Default constructor with fold_case = false
     SymbolTable(int fold_case_flag);
     SymbolTable(int size, int fold_case_flag = 0); // Constructor with table size and optional fold_case
     ~SymbolTable();
-    
-    void ClearSymbolTable();
-    STEntry *GetSymbol(char *str);
-    STEntry *PutSymbol(char *str, STE_TYPE type = STE_NONE);
-    bool AddEntry(char *str, STE_TYPE type); // Similar to PutSymbol but returns bool
+      void ClearSymbolTable();
+    STEntry *GetEntryCurrentScope(char *str);  // Get an entry only from current scope
+    STEntry *PutSymbol(char *str, STE_TYPE type = STE_NONE, int line = 0); // Add a symbol to the table
+    bool AddEntry(char *str, STE_TYPE type, int line); // Similar to PutSymbol but returns bool
     void PrintSymbolStats(FILE *fp);
     void Reset(int new_size);  // Reset the symbol table with a new size
     
@@ -50,13 +52,12 @@ public:
     
     // Scope-aware symbol lookup
     STEntry* LookupSymbol(char *str); // Look up a symbol in this and parent scopes
-
+    STEntry* GetSymbolFromScopes(char* str);  // Get a symbol from current and parent scopes
 };
 
-// Global symbol table management functions
-extern SymbolTable* current_scope; // The current active scope
-void enter_scope();  // Enter a new scope
-void exit_scope();   // Exit the current scope
-STEntry* LookupSymbol(char *str); // Look up a symbol in the current scope hierarchy
+// // Global symbol table management functions
+// extern SymbolTable* current_scope; // The current active scope
+
+// STEntry* LookupSymbol(char *str); // Look up a symbol in the current scope hierarchy
 
 #endif // SYMBOL_H

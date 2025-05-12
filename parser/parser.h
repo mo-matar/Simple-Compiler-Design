@@ -6,35 +6,39 @@
 #include "symbol.h"
 
 class Parser {
-public:
-    // Members
-    TOKEN* lookahead;  // Lookahead token for parsing
+public:    // Members
+    bool had_error; // Flag to indicate if parsing encountered errors
+    AST* programAST;   // Pointer to the root of the AST
+    SymbolTable* table; // Symbol table for storing identifiers
+    TOKEN* currentToken;  // Lookahead token for parsing
     Scanner* scanner;  // Scanner instance for tokenization
     FileDescriptor* fd; // File descriptor
-    bool had_error;    // Flag to indicate if parsing encountered errors
-
+    
+    
     // Token handling methods
     TOKEN* peek_token();  // Look at the next token without consuming it
     TOKEN* consume_token(); // Consume the current token
     TOKEN* match(LEXEME_TYPE expected); // Match and consume expected token
     const char* getTokenTypeName(LEXEME_TYPE type); // Get human-readable token type
-
+    
     // Parsing methods
-    AST* parseProgram();
-    AST* parseDeclList();
+    void scan_and_check_illegal_token();
+    AST* start_parsing();
+    ast_list* parseProgram();
+    ast_list* parseDeclList();
     AST* parseDecl();
-    AST* parseType();
-    AST* parseFormalList();
+    j_type parseType();
+    ast_list* parseFormalList();
     AST* parseFormals();
     AST* parseFormalsTail();
     AST* parseStmt();
     AST* parseStmtIdTail(AST* idNode);
     AST* parseIfTail(AST* condNode, AST* thenStmtNode);
     AST* parseBlock();
-    AST* parseVarDeclList();
+    ast_list* parseVarDeclList();
     AST* parseVarDecl();
-    AST* parseStmtList();
-    AST* parseArgList();
+    ast_list* parseStmtList();
+    ast_list* parseArgList();
     AST* parseArgs();
     AST* parseArgsTail();
     AST* parseRelOp();
@@ -54,10 +58,11 @@ public:
     AST* parseExpr5();
     AST* parsePrimaryExpr();
 
-public:
-    Parser();
+    void printParsedAST(AST* node);
+    void checkForRedeclaration(TOKEN* idToken);
+
+    Parser(FileDescriptor* fd);
     ~Parser();
-    AST* parse(FileDescriptor* fd, Scanner* scanner);
 };
 
 #endif // PARSER_H

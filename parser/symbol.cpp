@@ -6,37 +6,6 @@
 // Global current scope variable
 SymbolTable* current_scope = NULL;
 
-// Global scope management functions
-void enter_scope() {
-    if (current_scope == NULL) {
-        // Initialize the global scope if it doesn't exist
-        current_scope = new SymbolTable();
-    } else {
-        // Create a new scope that points to the current one
-        current_scope = current_scope->enter_scope();
-    }
-}
-
-void exit_scope() {
-    if (current_scope == NULL) {
-        fprintf(stderr, "Error: No active scope to exit\n");
-        return;
-    }
-    
-    SymbolTable* parent = current_scope->exit_scope();
-    if (parent == NULL) {
-        fprintf(stderr, "Warning: Exited global scope\n");
-    }
-    current_scope = parent;
-}
-
-STEntry* LookupSymbol(char *str) {
-    if (current_scope == NULL) {
-        return NULL;
-    }
-    return current_scope->LookupSymbol(str);
-}
-
 // Helper method to process string (fold case if needed)
 char* SymbolTable::processString(char *str) {
     if (!str) return NULL;
@@ -105,6 +74,8 @@ SymbolTable::SymbolTable(int fold_case_flag) {
 SymbolTable::SymbolTable(int size, int fold_case_flag) {
     fold_case = fold_case_flag;
     table_size = size;
+    current_scope = this;
+
     
     // Allocate the hash table
     slots = new STList[table_size];
@@ -123,15 +94,44 @@ SymbolTable::~SymbolTable() {
 }
 
 // Get a symbol from the symbol table (current scope only)
-STEntry *SymbolTable::GetSymbol(char *str) {
+// STEntry *SymbolTable::GetEntryCurrentScope(char *str) {
+//     if (!str) return NULL;
+    
+//     unsigned long index = hash(str);
+//     char *processed_str = processString(str);
+    
+//     number_probes++;
+    
+//     return slots[index].FindEntry(processed_str);
+// }
+
+// Get a symbol from current scope and parent scopes
+STEntry* SymbolTable::GetSymbolFromScopes(char* str) {
     if (!str) return NULL;
     
-    unsigned long index = hash(str);
-    char *processed_str = processString(str);
+    SymbolTable *currentScope = this;
+    STEntry* entry = NULL;
     
+    // Search through the scope chain
+    while(currentScope != NULL && ((entry = currentScope->GetEntryCurrentScope(str)) == NULL)) {
+        currentScope = currentScope->next;
+    }
+    
+    return entry;
+}
+
+// Get an entry only from the current scope (does not check parent scopes)
+STEntry *SymbolTable::GetEntryCurrentScope(char *key) {
+    if (!key) return NULL;
+    
+    // Calculate the hash index using our hash function
+    unsigned long index = hash(key);
+    
+    // Increment probe count for statistics
     number_probes++;
     
-    return slots[index].FindEntry(processed_str);
+    // Return the entry from the current scope only
+    return slots[index].FindEntry(processString(key));
 }
 
 // Lookup symbol in current and all parent scopes
@@ -139,7 +139,7 @@ STEntry *SymbolTable::LookupSymbol(char *str) {
     if (!str) return NULL;
     
     // First search in current scope
-    STEntry *entry = GetSymbol(str);
+    STEntry *entry = GetEntryCurrentScope(str);
     if (entry) return entry;
     
     // If not found and we have a parent scope, search there
@@ -152,17 +152,17 @@ STEntry *SymbolTable::LookupSymbol(char *str) {
 }
 
 // Add a symbol to the current scope or return existing one
-STEntry *SymbolTable::PutSymbol(char *str, STE_TYPE type) {
+STEntry *SymbolTable::PutSymbol(char *str, STE_TYPE type, int line) {
     if (!str) return NULL;
     
-    STEntry *entry = GetSymbol(str);
+    STEntry *entry = GetEntryCurrentScope(str);
     
     // If the symbol already exists, return it
     if (entry) return entry;
     
     // Otherwise, add a new entry to the list at the hash slot
     unsigned long index = hash(str);
-    slots[index].AddEntry(str, type);
+    slots[index].AddEntry(str, type, line);
     
     // Increment entry count
     number_entries++;
@@ -172,14 +172,14 @@ STEntry *SymbolTable::PutSymbol(char *str, STE_TYPE type) {
 }
 
 // Add an entry to the symbol table, return false if already exists
-bool SymbolTable::AddEntry(char *str, STE_TYPE type) {
+bool SymbolTable::AddEntry(char *str, STE_TYPE type, int line) {
     if (!str) return false;
     
     unsigned long index = hash(str);
     
     // If the slot already has an entry with the same name, return false
     // otherwise add the entry and return true
-    bool result = slots[index].AddEntry(str, type);
+    bool result = slots[index].AddEntry(str, type, line);
     
     if (result) {
         number_entries++;
@@ -190,16 +190,18 @@ bool SymbolTable::AddEntry(char *str, STE_TYPE type) {
 
 // Create a new scope and return it
 SymbolTable* SymbolTable::enter_scope() {
-    // Explicitly call the constructor with both parameters to avoid ambiguity
+    // Create a new scope and link it as the new head of the scope chain
     SymbolTable* new_scope = new SymbolTable(DEFAULT_SIZE, fold_case);
-    new_scope->next = this;
-    return new_scope;
+    new_scope->next = current_scope;
+    current_scope = new_scope;
+    return current_scope;
 }
 
-// Exit current scope and return parent
+// Exit current scope
 SymbolTable* SymbolTable::exit_scope() {
-    // This method returns the parent scope (next)
-    return next;
+    // Advance the global current_scope pointer to the parent scope (next)
+    current_scope = current_scope->next;
+    return current_scope;
 }
 
 // Clear all entries in the symbol table

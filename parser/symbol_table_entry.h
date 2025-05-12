@@ -37,7 +37,7 @@ public:
     STE_TYPE Type;      // Type of the symbol
     char Name[128];     // Name of the symbol
     int Size;           // Size in bytes
-    
+    int Line;          // Line number in source code
     // Additional fields for language features
     int ConstValue;     // Value for constants
     j_type VarType;     // Variable type for type checking
@@ -46,7 +46,7 @@ public:
     int IsConstant;     // Flag indicating if entry is a constant
     
     STEntry();
-    STEntry(const char* name, STE_TYPE type);
+    STEntry(const char* name, STE_TYPE type, int line = 0);
     char* toString(); // Convert entry to string representation
     void print(FILE* fp); // Print entry to file
     static STE_TYPE getType(const char* str); // Get type from string
