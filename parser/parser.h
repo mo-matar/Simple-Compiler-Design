@@ -28,7 +28,7 @@ public:    // Members
     ast_list* parseDeclList();
     AST* parseDecl();
     j_type parseType();
-    ast_list* parseFormalList();
+    ste_list* parseFormalList();
     AST* parseFormals();
     AST* parseFormalsTail();
     AST* parseStmt();

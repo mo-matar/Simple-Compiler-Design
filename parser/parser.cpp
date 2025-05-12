@@ -1,5 +1,6 @@
 #include "parser.h"
 #include <stdarg.h>
+#include <vector>
 
 Parser::Parser(FileDescriptor* fd) {
     scanner = new Scanner(fd);
@@ -23,6 +24,45 @@ const char* Parser::getTokenTypeName(LEXEME_TYPE type) {
         case lx_semicolon: return "Semicolon";
         case lx_colon: return "Colon";
         case lx_eof: return "End of File";
+        case lx_lparen: return "Left Parenthesis";
+        case lx_rparen: return "Right Parenthesis";
+        case lx_lbracket: return "Left Bracket";
+        case lx_rbracket: return "Right Bracket";
+        case lx_lsbracket: return "Left Square Bracket";
+        case lx_rsbracket: return "Right Square Bracket";
+        case lx_comma: return "Comma";
+        case lx_dot: return "Dot";
+        case lx_plus: return "Plus";
+        case lx_minus: return "Minus";
+        case lx_star: return "Star";
+        case lx_slash: return "Slash";
+        case lx_eq: return "Equal";
+        case lx_neq: return "Not Equal";
+        case lx_lt: return "Less Than";
+        case lx_le: return "Less Than or Equal";
+        case lx_gt: return "Greater Than";
+        case lx_ge: return "Greater Than or Equal";
+        case kw_and: return "Keyword and";
+        case kw_or: return "Keyword or";
+        case kw_constant: return "Keyword constant";
+        case kw_function: return "Keyword function";
+        case kw_procedure: return "Keyword procedure";
+        case kw_return: return "Keyword return";
+        case kw_true: return "Keyword true";
+        case kw_false: return "Keyword false";
+        case kw_while: return "Keyword while";
+        case kw_do: return "Keyword do";
+        case kw_od: return "Keyword od";
+        case kw_begin: return "Keyword begin";
+        case kw_end: return "Keyword end";
+        case kw_from: return "Keyword from";
+        case kw_to: return "Keyword to";
+        case kw_by: return "Keyword by";
+        case kw_for: return "Keyword for";
+        case kw_not: return "Keyword not";
+        case kw_float: return "Keyword float";
+        case illegal_token: return "Illegal Token";
+        case type_integer: return "Type Integer";
         default: return "Unknown Token Type";
     }
 }
@@ -41,6 +81,7 @@ TOKEN* Parser::match(LEXEME_TYPE expected) {
                   << " but found " 
                   << getTokenTypeName(currentToken->type) 
                   << "." << std::endl;
+        exit(1); // Exit on error
         return nullptr;
     }
 }
@@ -51,6 +92,7 @@ void Parser::checkForRedeclaration(TOKEN* idToken) {
         had_error = true;
         char error_msg[] = "Redeclaration of identifier";
         scanner->fd->ReportError(error_msg);
+        exit(1); // Exit on error
         return;
     }
     
@@ -185,7 +227,45 @@ AST* Parser::parseDecl() {
             std::cout << "Evaluated constant expression: " << STE->ConstValue << std::endl;
             
             // Create the const_decl node with expression
-            declNode = make_ast_node(ast_const_decl, STE, exprNode);
+            declNode = make_ast_node(ast_const_decl, STE, make_ast_node(ast_integer, STE->ConstValue));
+            break;
+        }
+
+        case kw_function: {
+            std::cout << "Found function keyword" << std::endl;
+            match(kw_function);
+
+            idToken = match(lx_identifier);
+            match(lx_lparen);
+
+            ste_list* formalsNode = parseFormalList();
+
+
+            match(lx_colon);
+
+            typeNode = parseType();
+            //AST* blockNode = parseBlock();
+            
+            STE = checkAndAddSymbol(idToken, getSTE_type(typeNode));
+            STE->Formals = formalsNode;
+            STE->ResultType = typeNode;
+            declNode = make_ast_node(ast_routine_decl, STE, formalsNode, typeNode, nullptr);
+            break;
+        }
+        case kw_procedure: {
+            // std::cout << "Found procedure keyword" << std::endl;
+            // match(kw_procedure);
+            // idToken = match(lx_identifier);
+            // std::cout << "Found identifier: " << idToken->str_ptr << std::endl;
+            // match(lx_lparen);
+            // std::cout << "Found left parenthesis, parsing formals" << std::endl;
+            // ste_list* formalsNode = parseFormals();
+            // match(lx_rparen);
+            // std::cout << "Found right parenthesis, parsing block" << std::endl;
+            // AST* blockNode = parseBlock();
+            
+            // STE = checkAndAddSymbol(idToken, getSTE_type(typeNode));
+            // declNode = make_ast_node(ast_routine_decl, STE, formalsNode, blockNode);
             break;
         }
         
@@ -471,5 +551,43 @@ AST* Parser::parsePrimaryExprTail(AST* idNode) {
     
     return idNode;
 }
+
+ste_list* Parser::parseFormalList() {
+    if (currentToken->type == lx_rparen) {
+        std::cout << "No formals found, returning empty list" << std::endl;
+        return nullptr;
+    }
+    
+    // Collect all parameters first in a vector to maintain order
+    std::vector<STEntry*> params;
+    
+    while (true) {
+        TOKEN* idToken = match(lx_identifier);
+        std::cout << "Found identifier: " << idToken->str_ptr << std::endl;
+        match(lx_colon);
+        j_type typeNode = parseType();
+        
+        STEntry* STE = checkAndAddSymbol(idToken, getSTE_type(typeNode));
+        params.push_back(STE);
+        
+        if(currentToken->type == lx_rparen) {
+            std::cout << "End of formals list reached" << std::endl;
+            match(lx_rparen);
+            break;
+        }
+        match(lx_comma);
+    }
+    
+    // Build the list in the correct order (last to first)
+    ste_list* formals = nullptr;
+    for (int i = params.size() - 1; i >= 0; i--) {
+        formals = cons_ste(params[i], formals);
+    }
+    
+    return formals;
+}
+
+
+
 
 // Global scanner and file descriptor pointers

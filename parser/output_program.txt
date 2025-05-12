@@ -2,6 +2,8 @@ program
   var x: integer;
   var y: string;
   var z: integer;
-  constant q = ((5 / 3) + 9);
-  constant i = ((0 - 1) * 5);
+  constant q = 10;
+  constant i = -5;
+  function factorial (a : integer, m : string, t : boolean) : integer
+    ;
   
