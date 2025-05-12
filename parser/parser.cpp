@@ -5,6 +5,7 @@
 Parser::Parser(FileDescriptor* fd) {
     scanner = new Scanner(fd);
     table = new SymbolTable();
+    current_scope = table;  // Initialize the global current_scope
     currentToken = new TOKEN();
     programAST = nullptr;
     had_error = false;
@@ -63,6 +64,7 @@ const char* Parser::getTokenTypeName(LEXEME_TYPE type) {
         case kw_float: return "Keyword float";
         case illegal_token: return "Illegal Token";
         case type_integer: return "Type Integer";
+        case kw_program: return "Keyword program";
         default: return "Unknown Token Type";
     }
 }
@@ -87,7 +89,8 @@ TOKEN* Parser::match(LEXEME_TYPE expected) {
 }
 
 void Parser::checkForRedeclaration(TOKEN* idToken) {
-    STEntry* STE = table->GetSymbolFromScopes(idToken->str_ptr);
+    // Only check in the current scope (not parent scopes)
+    STEntry* STE = current_scope->GetEntryCurrentScope(idToken->str_ptr);
     if (STE != nullptr){
         had_error = true;
         char error_msg[] = "Redeclaration of identifier";
@@ -100,7 +103,8 @@ void Parser::checkForRedeclaration(TOKEN* idToken) {
 }
 
 STEntry* Parser::checkAndAddSymbol(TOKEN* idToken, STE_TYPE steType) {
-    STEntry* STE = table->GetSymbolFromScopes(idToken->str_ptr);
+    // Only check in the current scope
+    STEntry* STE = current_scope->GetEntryCurrentScope(idToken->str_ptr);
     if (STE != nullptr){
         had_error = true;
         char error_msg[] = "Redeclaration of identifier";
@@ -109,7 +113,7 @@ STEntry* Parser::checkAndAddSymbol(TOKEN* idToken, STE_TYPE steType) {
     }
     
     std::cout << "No redeclaration found for identifier: " << idToken->str_ptr << std::endl;
-    return table->PutSymbol(idToken->str_ptr, steType, scanner->getLineNum());
+    return current_scope->PutSymbol(idToken->str_ptr, steType, scanner->getLineNum());
 }
 
 void Parser::scan_and_check_illegal_token() {
@@ -151,6 +155,7 @@ AST* Parser::start_parsing() {
 
 ast_list* Parser::parseProgram() {
     currentToken = scanner->Scan();
+    match(kw_program);
     ast_list* declList = parseDeclList();
     
     return declList;
@@ -236,22 +241,32 @@ AST* Parser::parseDecl() {
             match(kw_function);
 
             idToken = match(lx_identifier);
-            match(lx_lparen);
-
-            ste_list* formalsNode = parseFormalList();
-
-
-            match(lx_colon);
-
-            typeNode = parseType();
-            //AST* blockNode = parseBlock();
             
-            STE = checkAndAddSymbol(idToken, getSTE_type(typeNode));
+            // First add the function to the current scope
+            STE = checkAndAddSymbol(idToken, STE_ROUTINE);
+            
+            // Enter a new scope for the function body
+            enter_scope();
+            
+            match(lx_lparen);
+            ste_list* formalsNode = parseFormalList();
+            match(lx_colon);
+            typeNode = parseType();
+            
+            // Store additional function info
             STE->Formals = formalsNode;
             STE->ResultType = typeNode;
-            declNode = make_ast_node(ast_routine_decl, STE, formalsNode, typeNode, nullptr);
+            
+            // Here you would parse the function body
+            AST* blockNode = parseBlock();
+            
+            // Exit the function scope
+            exit_scope();
+            
+            declNode = make_ast_node(ast_routine_decl, STE, formalsNode, typeNode, blockNode);
             break;
         }
+        
         case kw_procedure: {
             // std::cout << "Found procedure keyword" << std::endl;
             // match(kw_procedure);
@@ -281,6 +296,20 @@ AST* Parser::parseDecl() {
     return declNode;
 }
 
+AST* Parser::parseBlock() {
+    AST* blockNode = nullptr;
+    std::cout << "Parsing block..." << std::endl;
+    match(kw_begin);
+    ste_list* varDeclList = parseVarDeclList();
+    ast_list* stmtList = parseStmtList();
+
+    match(kw_end);
+    std::cout << "Block parsed successfully." << std::endl;
+    blockNode = make_ast_node(ast_block, varDeclList, stmtList);
+    
+
+    return blockNode;
+}
 
 j_type Parser::parseType() {
     switch (currentToken->type) {
@@ -587,7 +616,56 @@ ste_list* Parser::parseFormalList() {
     return formals;
 }
 
+ste_list* Parser::parseVarDeclList() {
+    ste_list* varDeclList = nullptr;
+    STEntry* varDecl = parseVarDecl();
+
+    match(lx_semicolon);
+
+    if (currentToken->type == kw_var) {
+        varDeclList = cons_ste(varDecl, parseVarDeclList());
+    } else {
+        varDeclList = cons_ste(varDecl, nullptr);
+    }
 
 
 
+    
+    
+    return varDeclList;
+}
 // Global scanner and file descriptor pointers
+
+STEntry* Parser::parseVarDecl() {
+    match(kw_var);
+    std::cout << "Found var keyword" << std::endl;
+
+    TOKEN* idToken = match(lx_identifier);
+    std::cout << "Found identifier: " << idToken->str_ptr << std::endl;
+    match(lx_colon);
+    j_type typeNode = parseType();
+    
+    STEntry* STE = checkAndAddSymbol(idToken, getSTE_type(typeNode));
+    
+    return STE;
+}
+
+ast_list* Parser::parseStmtList() {
+    ast_list* stmtList = nullptr;
+    
+    if (currentToken->type == kw_end) {
+        std::cout << "End of statement list reached, returning empty list" << std::endl;
+        return stmtList;
+    }
+    
+    AST* stmtNode = parseStmt();
+    match(lx_semicolon);
+    
+    stmtList = cons_ast(stmtNode, parseStmtList());
+    
+    return stmtList;
+}
+
+AST* Parser::parseStmt() {
+    return nullptr;
+}

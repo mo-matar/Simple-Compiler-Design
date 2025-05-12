@@ -4,6 +4,11 @@ program
   var z: integer;
   constant q = 10;
   constant i = -5;
-  function factorial (a : integer, m : string, t : boolean) : integer
-    ;
+  function factorial (x : integer;, m : string;, t : boolean;) : integer
+    begin
+      var mo : integer;
+      var z : integer;
+      var p : string;
+      
+    end;
   

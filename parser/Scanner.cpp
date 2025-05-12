@@ -4,7 +4,7 @@ char *keywords[] =
         {
         "and", "begin","boolean","by", "constant","do","else", "end",
         "false", "fi", "float", "for", "from", "function", "if", "integer",
-        "not", "od", "or", "procedure", "programAST", "read", "return", "string",
+        "not", "od", "or", "procedure", "program", "read", "return", "string",
         "then", "to", "true", "var", "while", "write"
 };
 

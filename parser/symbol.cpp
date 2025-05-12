@@ -4,7 +4,7 @@
 #include "symbol.h"
 
 // Global current scope variable
-SymbolTable* current_scope = NULL;
+SymbolTable* current_scope = nullptr;
 
 // Helper method to process string (fold case if needed)
 char* SymbolTable::processString(char *str) {
@@ -52,6 +52,11 @@ SymbolTable::SymbolTable() {
     number_hits = 0;
     max_search_dist = 0;
     next = NULL;
+    
+    // Initialize the global current_scope if this is the first symbol table
+    if (current_scope == nullptr) {
+        current_scope = this;
+    }
 }
 
 // Constructor with fold_case flag
@@ -74,8 +79,6 @@ SymbolTable::SymbolTable(int fold_case_flag) {
 SymbolTable::SymbolTable(int size, int fold_case_flag) {
     fold_case = fold_case_flag;
     table_size = size;
-    current_scope = this;
-
     
     // Allocate the hash table
     slots = new STList[table_size];
@@ -93,28 +96,16 @@ SymbolTable::~SymbolTable() {
     delete[] slots;
 }
 
-// Get a symbol from the symbol table (current scope only)
-// STEntry *SymbolTable::GetEntryCurrentScope(char *str) {
-//     if (!str) return NULL;
-    
-//     unsigned long index = hash(str);
-//     char *processed_str = processString(str);
-    
-//     number_probes++;
-    
-//     return slots[index].FindEntry(processed_str);
-// }
-
 // Get a symbol from current scope and parent scopes
 STEntry* SymbolTable::GetSymbolFromScopes(char* str) {
     if (!str) return NULL;
     
-    SymbolTable *currentScope = this;
+    SymbolTable *currentTable = this;
     STEntry* entry = NULL;
     
     // Search through the scope chain
-    while(currentScope != NULL && ((entry = currentScope->GetEntryCurrentScope(str)) == NULL)) {
-        currentScope = currentScope->next;
+    while(currentTable != NULL && ((entry = currentTable->GetEntryCurrentScope(str)) == NULL)) {
+        currentTable = currentTable->next;
     }
     
     return entry;
@@ -149,6 +140,11 @@ STEntry *SymbolTable::LookupSymbol(char *str) {
     
     // Not found in any scope
     return NULL;
+}
+
+// Get parent scope without exiting
+SymbolTable* SymbolTable::get_parent_scope() {
+    return next;
 }
 
 // Add a symbol to the current scope or return existing one
@@ -188,20 +184,28 @@ bool SymbolTable::AddEntry(char *str, STE_TYPE type, int line) {
     return result;
 }
 
-// Create a new scope and return it
-SymbolTable* SymbolTable::enter_scope() {
+// Global function: Create a new scope and return it
+SymbolTable* enter_scope() {
     // Create a new scope and link it as the new head of the scope chain
-    SymbolTable* new_scope = new SymbolTable(DEFAULT_SIZE, fold_case);
+    SymbolTable* new_scope = new SymbolTable(SymbolTable::DEFAULT_SIZE, 
+                                            current_scope ? current_scope->fold_case : 0);
     new_scope->next = current_scope;
     current_scope = new_scope;
     return current_scope;
 }
 
-// Exit current scope
-SymbolTable* SymbolTable::exit_scope() {
-    // Advance the global current_scope pointer to the parent scope (next)
-    current_scope = current_scope->next;
-    return current_scope;
+// Global function: Exit current scope
+SymbolTable* exit_scope() {
+    // Make sure we don't exit the global scope
+    if (current_scope && current_scope->next) {
+        SymbolTable* temp = current_scope;
+        current_scope = current_scope->next;
+        // Note: in a real application, you might want to delete temp to avoid memory leaks,
+        // but for simplicity and to ensure we don't break anything, we'll leave it for now.
+        // delete temp; 
+        return current_scope;
+    }
+    return current_scope; // Return current scope if we can't exit further
 }
 
 // Clear all entries in the symbol table

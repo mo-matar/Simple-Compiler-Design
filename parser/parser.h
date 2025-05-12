@@ -34,9 +34,9 @@ public:    // Members
     AST* parseStmt();
     AST* parseStmtIdTail(AST* idNode);
     AST* parseIfTail(AST* condNode, AST* thenStmtNode);
-    AST* parseBlock();
-    ast_list* parseVarDeclList();
-    AST* parseVarDecl();
+    AST* parseBlock(); // Parse a code block
+    ste_list* parseVarDeclList();
+    STEntry* parseVarDecl();
     ast_list* parseStmtList();
     ast_list* parseArgList();
     AST* parseArgs();

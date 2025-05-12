@@ -1,6 +1,12 @@
+program
 var x : integer;
 var y : string;
 var z : integer;
 constant q = (5/3)+9;
 constant i = (0-1)*5;
-function factorial(a : integer, m : string, t:boolean) : integer;
+function factorial(x : integer, m : string, t:boolean) : integer
+begin
+var mo : integer;
+var z :     integer;
+var p:string;
+end;
