@@ -20,22 +20,13 @@ N23 supports standard programming constructs including:
 
 ```pascal
 program
-
-  var x : integer;
-  var y : integer;
-  constant MAX = 100;
-
-  function factorial(n : integer) : integer
-  begin
-    var result : integer;
-    program
 var num : integer;
 var result : boolean;
 
 function isEven(x : integer) : boolean
 begin
     var remainder : integer;
-
+    
     remainder := x / 2 * 2;
     return(remainder = x);
 end;
@@ -44,7 +35,7 @@ begin
     var msg : string;
     read(num);
     result := isEven(num);
-
+    
     if result then
     begin
         msg := "number is even";
@@ -79,11 +70,14 @@ The N23 language is defined by a context-free grammar, initially presented in a 
 
 The conversion ensures that the grammar can be parsed without backtracking, optimizing the parsing process while maintaining the language's intended semantics.
 
+<<<<<<< HEAD
 The usual [Markdown Cheatsheet](https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet)
 does not cover some of the more advanced Markdown tricks, but here
 is one. You can combine verbatim HTML with your Markdown. 
 This is particularly useful for tables.
 Notice that with **empty separating lines** we can use Markdown inside HTML:
+=======
+>>>>>>> 2123f83facd3e5f1f00ccd885b400fbb3edd16e6
 
 <table>
 <tr>
@@ -364,6 +358,3 @@ The compiler implements robust error handling:
 3. **Memory Management**: Care is taken to properly allocate and deallocate resources for AST nodes and symbol table entries.
 4. **Testing Infrastructure**: Includes utilities for validating the correctness of each compiler phase.
 5. **Extensibility**: The design allows for future extensions such as semantic analysis and code generation.
-
-
-
