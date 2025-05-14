@@ -327,11 +327,12 @@ The implementation includes utilities for:
 
 The project includes several test cases that demonstrate different aspects of the language:
 
-1. **Test1_isEven**: A function to check if a number is even
-2. **Test2_redeclaration**: Tests error detection for redeclared variables
-3. **Test3_outer_scope**: Demonstrates variable resolution in outer scopes
-4. **Test4_inner_scope**: Tests local variable declarations and scope nesting
-5. **Test5_all_operators**: Validates the implementation of all operators and precedence rules
+1. **test1_isEven**: A function to check if a number is even
+2. **test2_redeclaration**: Tests error detection for redeclared variables
+3. **test3_outer_scope**: Demonstrates variable resolution in outer scopes
+4. **test4_inner_scope**: Tests local variable declarations and scope nesting
+5. **test5_all_operators**: Validates the implementation of all operators and precedence rules
+6. **test6_semantic_error**: Checks for assigning an expression to a function and giving a variable function parameters.
 
 ## Error Handling
 
