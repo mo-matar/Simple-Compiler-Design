@@ -1,6 +1,7 @@
 #include "parser.h"
 #include <stdarg.h>
 #include <vector>
+#include <fstream>
 
 Parser::Parser(FileDescriptor* fd) {
     scanner = new Scanner(fd);
@@ -9,6 +10,23 @@ Parser::Parser(FileDescriptor* fd) {
     currentToken = new TOKEN();
     programAST = nullptr;
     had_error = false;
+    
+    // Open error file
+    errorFile.open("c:\\Users\\Hp\\Desktop\\Compiler Design\\project\\Simple-Compiler-Design\\parser\\parse_errors.txt", std::ios::out);
+    if (!errorFile.is_open()) {
+        std::cout << "Warning: Could not open parse_errors.txt for writing." << std::endl;
+    }
+}
+
+Parser::~Parser() {
+    // Close error file
+    if (errorFile.is_open()) {
+        errorFile.close();
+    }
+    // Other cleanup as needed
+    delete scanner;
+    delete table;
+    delete currentToken;
 }
 
 const char* Parser::getTokenTypeName(LEXEME_TYPE type) {
@@ -74,11 +92,11 @@ TOKEN* Parser::match(LEXEME_TYPE expected) {
         TOKEN* matchedToken = currentToken;
         std::cout << "Matched token: " << getTokenTypeName(currentToken->type) << std::endl;
         currentToken = scanner->Scan(); // Advance to the next token
-        std::cout << "Next token: " << getTokenTypeName(currentToken->type) << std::endl;
+        // std::cout << "Next token: " << getTokenTypeName(currentToken->type) << std::endl;
         return matchedToken;
     } else {
         had_error = true;
-        std::cerr << "Syntax Error: Expected token of type " 
+        errorFile << "Syntax Error: Expected token of type " 
                   << getTokenTypeName(expected) 
                   << " but found " 
                   << getTokenTypeName(currentToken->type) 
@@ -93,13 +111,13 @@ void Parser::checkForRedeclaration(TOKEN* idToken) {
     STEntry* STE = current_scope->GetEntryCurrentScope(idToken->str_ptr);
     if (STE != nullptr){
         had_error = true;
-        char error_msg[] = "Redeclaration of identifier";
+        char error_msg[] = "Syntax Error: Redeclaration of identifier2";
         scanner->fd->ReportError(error_msg);
-        exit(1); // Exit on error
+        errorFile << error_msg << std::endl;
         return;
     }
     
-    std::cout << "No redeclaration found for identifier: " << idToken->str_ptr << std::endl;
+    // std::cout << "No redeclaration found for identifier: " << idToken->str_ptr << std::endl;
 }
 
 STEntry* Parser::checkAndAddSymbol(TOKEN* idToken, STE_TYPE steType) {
@@ -107,27 +125,28 @@ STEntry* Parser::checkAndAddSymbol(TOKEN* idToken, STE_TYPE steType) {
     STEntry* STE = current_scope->GetEntryCurrentScope(idToken->str_ptr);
     if (STE != nullptr){
         had_error = true;
-        char error_msg[] = "Redeclaration of identifier";
+        char error_msg[] = "Syntax Error: Redeclaration of identifier1";
         scanner->fd->ReportError(error_msg);
+        errorFile << error_msg << std::endl;
         return nullptr;
     }
     
-    std::cout << "No redeclaration found for identifier: " << idToken->str_ptr << std::endl;
+    // std::cout << "No redeclaration found for identifier: " << idToken->str_ptr << std::endl;
     return current_scope->PutSymbol(idToken->str_ptr, steType, scanner->getLineNum());
 }
 
 void Parser::scan_and_check_illegal_token() {
     currentToken = scanner->Scan();
-    std::cout << "Scanned token type: " << currentToken->type << " (" << getTokenTypeName(currentToken->type) << ")" << std::endl;
+    // std::cout << "Scanned token type: " << currentToken->type << " (" << getTokenTypeName(currentToken->type) << ")" << std::endl;
     if (currentToken->type == lx_identifier && currentToken->str_ptr) {
-        std::cout << "Identifier value: " << currentToken->str_ptr << std::endl;
+        // std::cout << "Identifier value: " << currentToken->str_ptr << std::endl;
     }
     
     if (currentToken->type == illegal_token) {
         had_error = true;
-        std::cout << "Error: Illegal token encountered from parser." << std::endl;
+        errorFile << "Error: Illegal token encountered from parser." << std::endl;
     }
-    else std::cout << "no illegal token yet... parser" << std::endl;
+    // else std::cout << "no illegal token yet... parser" << std::endl;
 }
 
 void Parser::printParsedAST(AST* node) {
@@ -166,7 +185,7 @@ ast_list* Parser::parseDeclList() {
     ast_list* declList = nullptr;
 
     if(currentToken->type == lx_eof) {
-        std::cout << "End of file reached, returning empty list" << std::endl;
+        // std::cout << "End of file reached, returning empty list" << std::endl;
         return declList;
     }
     else{//not lambda, then it is a declaration
@@ -202,12 +221,12 @@ AST* Parser::parseDecl() {
     
     switch (currentToken->type) {
         case kw_var: {
-            std::cout << "Found var keyword" << std::endl;
+            // std::cout << "Found var keyword" << std::endl;
             match(kw_var);
             idToken = match(lx_identifier);
-            std::cout << "Found identifier: " << idToken->str_ptr << std::endl;
+            // std::cout << "Found identifier: " << idToken->str_ptr << std::endl;
             match(lx_colon);
-            std::cout << "Found colon, parsing type" << std::endl;
+            // std::cout << "Found colon, parsing type" << std::endl;
             typeNode = parseType();
             
             STE = checkAndAddSymbol(idToken, getSTE_type(typeNode));
@@ -216,12 +235,12 @@ AST* Parser::parseDecl() {
         }
         
         case kw_constant: {
-            std::cout << "Found constant keyword" << std::endl;
+            // std::cout << "Found constant keyword" << std::endl;
             match(kw_constant);
             idToken = match(lx_identifier);
-            std::cout << "Found identifier: " << idToken->str_ptr << std::endl;
+            // std::cout << "Found identifier: " << idToken->str_ptr << std::endl;
             match(lx_eq);
-            std::cout << "Found equals sign, parsing expression" << std::endl;
+            // std::cout << "Found equals sign, parsing expression" << std::endl;
             
             // Check for redeclarations, if not, put it in ST
             STE = checkAndAddSymbol(idToken, STE_INT);
@@ -229,7 +248,7 @@ AST* Parser::parseDecl() {
             // Parse the expression
             AST* exprNode = parseExpr();
             STE->ConstValue = eval_ast_expr(scanner->fd, exprNode);
-            std::cout << "Evaluated constant expression: " << STE->ConstValue << std::endl;
+            // std::cout << "Evaluated constant expression: " << STE->ConstValue << std::endl;
             
             // Create the const_decl node with expression
             declNode = make_ast_node(ast_const_decl, STE, make_ast_node(ast_integer, STE->ConstValue));
@@ -237,7 +256,7 @@ AST* Parser::parseDecl() {
         }
 
         case kw_function: {
-            std::cout << "Found function keyword" << std::endl;
+            // std::cout << "Found function keyword" << std::endl;
             match(kw_function);
 
             idToken = match(lx_identifier);
@@ -286,7 +305,7 @@ AST* Parser::parseDecl() {
         
         default: {
             had_error = true;
-            std::cerr << "Syntax Error: Expected a declaration but found " 
+            errorFile << "Syntax Error: Expected a declaration but found " 
                       << getTokenTypeName(currentToken->type) 
                       << "." << std::endl;
             break;
@@ -298,13 +317,13 @@ AST* Parser::parseDecl() {
 
 AST* Parser::parseBlock() {
     AST* blockNode = nullptr;
-    std::cout << "Parsing block..." << std::endl;
+    // std::cout << "Parsing block..." << std::endl;
     match(kw_begin);
     ste_list* varDeclList = parseVarDeclList();
     ast_list* stmtList = parseStmtList();
 
     match(kw_end);
-    std::cout << "Block parsed successfully." << std::endl;
+    // std::cout << "Block parsed successfully." << std::endl;
     blockNode = make_ast_node(ast_block, varDeclList, stmtList);
     
 
@@ -330,7 +349,7 @@ j_type Parser::parseType() {
 
         default:
             had_error = true;
-            std::cerr << "Syntax Error: Expected a type but found " 
+            errorFile << "Syntax Error: Expected a type but found " 
                       << getTokenTypeName(currentToken->type) 
                       << "." << std::endl;
     }
@@ -402,7 +421,7 @@ AST* Parser::parseExpr2Tail(AST* leftNode) {
                 break;
             default:
                 had_error = true;
-                std::cerr << "Unexpected relational operator" << std::endl;
+                errorFile << "Unexpected relational operator" << std::endl;
                 return nullptr;
         }
         
@@ -491,11 +510,11 @@ AST* Parser::parsePrimaryExpr() {
     switch (currentToken->type) {
         case lx_identifier: {
             TOKEN* idToken = match(lx_identifier);
-            STEntry* entry = table->GetSymbolFromScopes(idToken->str_ptr);
+            STEntry* entry = current_scope->GetSymbolFromScopes(idToken->str_ptr);
             if (!entry) {
                 had_error = true;
-                std::cerr << "Undefined identifier: " << idToken->str_ptr << std::endl;
-                entry = table->PutSymbol(idToken->str_ptr, STE_INT, scanner->getLineNum());
+                errorFile << "Undefined identifier: " << idToken->str_ptr << std::endl;
+                entry = current_scope->PutSymbol(idToken->str_ptr, STE_INT, scanner->getLineNum());
             }
             
             node = make_ast_node(ast_var, entry);
@@ -536,7 +555,7 @@ AST* Parser::parsePrimaryExpr() {
         
         default: {
             had_error = true;
-            std::cerr << "Syntax Error: Expected a primary expression but found " 
+            errorFile << "Syntax Error: Expected a primary expression but found " 
                       << getTokenTypeName(currentToken->type) 
                       << "." << std::endl;
             node = make_ast_node(ast_integer, 0);
@@ -551,7 +570,7 @@ AST* Parser::parsePrimaryExprTail(AST* idNode) {
     if (currentToken->type == lx_lparen) {
         if (idNode->type != ast_var) {
             had_error = true;
-            std::cerr << "Expected a function name." << std::endl;
+            errorFile << "Expected a function name." << std::endl;
             return idNode;
         }
         
@@ -583,7 +602,7 @@ AST* Parser::parsePrimaryExprTail(AST* idNode) {
 
 ste_list* Parser::parseFormalList() {
     if (currentToken->type == lx_rparen) {
-        std::cout << "No formals found, returning empty list" << std::endl;
+        // std::cout << "No formals found, returning empty list" << std::endl;
         return nullptr;
     }
     
@@ -592,7 +611,7 @@ ste_list* Parser::parseFormalList() {
     
     while (true) {
         TOKEN* idToken = match(lx_identifier);
-        std::cout << "Found identifier: " << idToken->str_ptr << std::endl;
+        // std::cout << "Found identifier: " << idToken->str_ptr << std::endl;
         match(lx_colon);
         j_type typeNode = parseType();
         
@@ -600,7 +619,7 @@ ste_list* Parser::parseFormalList() {
         params.push_back(STE);
         
         if(currentToken->type == lx_rparen) {
-            std::cout << "End of formals list reached" << std::endl;
+            // std::cout << "End of formals list reached" << std::endl;
             match(lx_rparen);
             break;
         }
@@ -627,10 +646,6 @@ ste_list* Parser::parseVarDeclList() {
     } else {
         varDeclList = cons_ste(varDecl, nullptr);
     }
-
-
-
-    
     
     return varDeclList;
 }
@@ -638,10 +653,10 @@ ste_list* Parser::parseVarDeclList() {
 
 STEntry* Parser::parseVarDecl() {
     match(kw_var);
-    std::cout << "Found var keyword" << std::endl;
+    // std::cout << "Found var keyword" << std::endl;
 
     TOKEN* idToken = match(lx_identifier);
-    std::cout << "Found identifier: " << idToken->str_ptr << std::endl;
+    // std::cout << "Found identifier: " << idToken->str_ptr << std::endl;
     match(lx_colon);
     j_type typeNode = parseType();
     
@@ -654,7 +669,7 @@ ast_list* Parser::parseStmtList() {
     ast_list* stmtList = nullptr;
     
     if (currentToken->type == kw_end) {
-        std::cout << "End of statement list reached, returning empty list" << std::endl;
+        // std::cout << "End of statement list reached, returning empty list" << std::endl;
         return stmtList;
     }
     
@@ -667,5 +682,61 @@ ast_list* Parser::parseStmtList() {
 }
 
 AST* Parser::parseStmt() {
-    return nullptr;
+    AST* stmtNode = nullptr;
+    switch (currentToken->type) {
+        case lx_identifier: {
+            TOKEN* idToken = match(lx_identifier);
+            STEntry* entry = current_scope->GetSymbolFromScopes(idToken->str_ptr);
+            if (entry == nullptr) {
+                had_error = true;
+                errorFile << "Undefined identifier: " << idToken->str_ptr << std::endl;
+                scanner->fd->ReportError(" ");
+            }
+
+            return parseStmtIdTail(entry);
+            break;
+        }
+        default: {
+            had_error = true;
+            errorFile << "Syntax Error: Expected a statement but found " 
+                      << getTokenTypeName(currentToken->type) 
+                      << "." << std::endl;
+            break;
+        }
+     }
+
+
+    return stmtNode;
 }
+
+
+AST* Parser::parseStmtIdTail(STEntry* entry) {
+    AST* stmtNode = nullptr;
+    
+    if(currentToken->type == lx_colon_eq){
+        //assignment statement
+        match(lx_colon_eq);
+        AST* exprNode = parseExpr();
+        stmtNode = make_ast_node(ast_assign, entry, exprNode);
+
+    }
+    else if(currentToken->type == lx_lparen){
+        //note from grammar that the arg_list is the same as primary_expr_tail
+        stmtNode = parsePrimaryExprTail(make_ast_node(ast_var, entry));}
+        
+    else {
+        had_error = true;
+        errorFile << "Syntax Error: Expected assignment or function call but found " 
+                  << getTokenTypeName(currentToken->type) 
+                  << "." << "on line: " << scanner->getLineNum() << std::endl;
+        
+
+    }
+
+    return stmtNode;
+
+}
+
+
+
+

@@ -6,6 +6,7 @@ decl = "var" id ":" type
      | "constant" id "=" expr 
      | "function" id formal_list ":" type block 
      | "procedure" id formal_list block ;
+     | block ; # added for main block
 
 type = "integer" | "boolean" | "string" ;
 
@@ -16,6 +17,7 @@ formals_tail = "," id ":" type formals_tail | "λ" ;
 
 
 
+stmt_list = stmt ";" stmt_list | "λ" ;
 
 stmt = id stmt_id_tail
      | "if" expr "then" stmt if_tail
@@ -36,7 +38,6 @@ var_decl_list = var_decl ";" var_decl_list | "λ" ;
 
 var_decl = "var" id ":" type ;
 
-stmt_list = stmt ";" stmt_list | "λ" ;
 
 arg_list = "()" | "(" args ")" ;
 

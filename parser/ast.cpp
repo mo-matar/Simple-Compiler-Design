@@ -398,7 +398,8 @@ static void p_a_n(FILE *fp, AST *node, int indent) {
             fprintf(fp, "begin");
             nl_indent(fp, indent + 2);
             print_ste_list(fp, node->f.a_block.vars, "var ", "", indent + 2);
-            print_ast_list(fp, node->f.a_block.stmts, ";", indent + 2);
+            print_ast_list(fp, node->f.a_block.stmts, ";\n", indent + 2);
+            fprintf(fp, ";");
             nl_indent(fp, indent);
             fprintf(fp, "end");
             break;
@@ -502,6 +503,13 @@ static void print_ast_list(FILE *fp, ast_list *list, const char *separator, int 
         // Only add separator, no newline needed as p_a_n already adds a newline for var_decl nodes
         if (list->tail && (separator[0] != '\0')) {
             fprintf(fp, "%s", separator);
+            
+            // If separator contains newline and indent is not negative, add proper indentation
+            if (strchr(separator, '\n') && indent >= 0) {
+                for (int i = 0; i < indent; i++) {
+                    fprintf(fp, " ");
+                }
+            }
         }
     }
 }

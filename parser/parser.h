@@ -4,8 +4,21 @@
 #include "Scanner.h"
 #include "ast.h"
 #include "symbol.h"
+#include <fstream>
+
+struct had_error {
+    bool error; // Flag to indicate if an error occurred
+    int line; // Line number where the error occurred
+    int char_num; // Character number where the error occurred
+    char* message; // Error message
+    had_error* next;
+    had_error() : error(false), line(0), char_num(0), message(nullptr), next(nullptr) {} // Constructor to initialize members
+};
 
 class Parser {
+private:
+    std::ofstream errorFile; // File stream for error reporting
+
 public:    // Members
     bool had_error; // Flag to indicate if parsing encountered errors
     AST* programAST;   // Pointer to the root of the AST
@@ -13,7 +26,6 @@ public:    // Members
     TOKEN* currentToken;  // Lookahead token for parsing
     Scanner* scanner;  // Scanner instance for tokenization
     FileDescriptor* fd; // File descriptor
-    
     
     // Token handling methods
     TOKEN* peek_token();  // Look at the next token without consuming it
@@ -32,7 +44,7 @@ public:    // Members
     AST* parseFormals();
     AST* parseFormalsTail();
     AST* parseStmt();
-    AST* parseStmtIdTail(AST* idNode);
+    AST* parseStmtIdTail(STEntry* entry);
     AST* parseIfTail(AST* condNode, AST* thenStmtNode);
     AST* parseBlock(); // Parse a code block
     ste_list* parseVarDeclList();

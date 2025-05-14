@@ -9,6 +9,10 @@ program
       var mo : integer;
       var z : integer;
       var p : string;
-      
+      y := 5;
+      mo := ((y + 5) / y);
+      mo := (3 - q);
+      factorial(5, 5, z);
     end;
+  var uuu: string;
   
