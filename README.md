@@ -79,6 +79,168 @@ The N23 language is defined by a context-free grammar, initially presented in a 
 
 The conversion ensures that the grammar can be parsed without backtracking, optimizing the parsing process while maintaining the language's intended semantics.
 
+The usual [Markdown Cheatsheet](https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet)
+does not cover some of the more advanced Markdown tricks, but here
+is one. You can combine verbatim HTML with your Markdown. 
+This is particularly useful for tables.
+Notice that with **empty separating lines** we can use Markdown inside HTML:
+
+<table>
+<tr>
+<th>Regular Grammar</th>
+<th>LL(1) Grammar</th>
+</tr>
+<tr>
+<td>
+
+```ebnf
+program = decl_list ;
+
+decl_list = decl ";" decl_list | "λ" ;
+
+decl = "var" id ":" type 
+     | "constant" id "=" expr 
+     | "function" id formal_list ":" type block 
+     | "procedure" id formal_list block ;
+
+type = "integer" | "boolean" | "string" ;
+
+formal_list = "()" | "(" formals ")" ;
+
+
+stmt = id ":=" expr
+     | "if" expr "then" stmt "fi"
+     | "if" expr "then" stmt "else" stmt "fi"
+     | "while" expr "do" stmt "od"
+     | "for" id ":=" expr "to" expr "do" stmt "od"
+     | "read" "(" id ")"
+     | "write" "(" id ")"
+     | id arg_list
+     | "return" "(" expr ")"
+     | block ;
+
+block = "begin" var_decl_list stmt_list "end" ;
+
+var_decl_list = var_decl ";" var_decl_list | " λ" ;
+
+var_decl = "var" id ":" type ;
+
+stmt_list = stmt ";" stmt_list | " λ" ;
+
+arg_list = "()" | "(" args ")" ;
+
+args = expr | expr "," args ;
+
+expr = id
+     | id arg_list
+     | integer_constant
+     | string_constant
+     | expr arith_op expr
+     | "true"
+     | "false"
+     | expr rel_op expr
+     | expr rel_conj expr
+     | unary_op "(" expr ")"
+     | "(" expr ")" ;
+
+arith_op = "*" | "/" | "+" | "-" ;
+
+rel_op = "=" | "!=" | "<" | "<=" | ">" | ">=" ;
+
+rel_conj = "and" | "or" ;
+
+unary_op = "-" | "not" ;
+```
+
+</td>
+<td>
+
+```ebnf
+program = decl_list ;
+
+decl_list = decl ";" decl_list | "λ" ;
+
+decl = "var" id ":" type 
+     | "constant" id "=" expr 
+     | "function" id formal_list ":" type block 
+     | "procedure" id formal_list block ;
+     | block ; # added for main block
+
+type = "integer" | "boolean" | "string" ;
+
+formal_list = "()" | "(" formals ")" ;
+
+formals = id ":" type formals_tail ;
+formals_tail = "," id ":" type formals_tail | "λ" ;
+
+
+
+stmt_list = stmt ";" stmt_list | "λ" ;
+
+stmt = id stmt_id_tail
+     | "if" expr "then" stmt if_tail
+     | "while" expr "do" stmt "od"
+     | "for" id ":=" expr "to" expr "do" stmt "od"
+     | "read" "(" id ")"
+     | "write" "(" id ")"
+     | "return" "(" expr ")"
+     | block ;
+
+stmt_id_tail = ":=" expr | arg_list ;
+
+if_tail = "fi" | "else" stmt "fi" ;
+
+block = "begin" var_decl_list stmt_list "end" ;
+
+var_decl_list = var_decl ";" var_decl_list | "λ" ;
+
+var_decl = "var" id ":" type ;
+
+
+arg_list = "()" | "(" args ")" ;
+
+args = expr args_tail ;
+args_tail = "," expr args_tail | "λ" ;
+
+
+
+rel_op = "=" | "!=" | "<" | "<=" | ">" | ">=" ;
+
+rel_conj = "and" | "or" ;
+
+unary_op = "-" | "not" ;
+
+add_sub_op = "+" | "-" ;
+mult_div_op = "*" | "/" ;
+
+primary_expr_tail = arg_list | "λ" ;
+
+expr = expr2 expr_tail ;
+expr_tail = matarrel_conj expr2 expr_tail | "λ" ;
+
+expr2 = expr3 expr2_tail ;
+expr2_tail = rel_op expr3 expr2_tail | "λ" ;
+
+expr3 = expr4 expr3_tail ;
+expr3_tail = add_sub_op expr4 expr3_tail | "λ" ;
+
+expr4 = expr5 expr4_tail ;
+expr4_tail = mult_div_op expr5 expr4_tail | "λ" ;
+
+expr5 = unary_op "(" expr ")" | primary_expr ;
+
+primary_expr = id primary_expr_tail
+             | integer_constant
+             | string_constant
+             | "true"
+             | "false"
+             | "(" expr ")" ;
+```
+
+</td>
+</tr>
+</table>
+
 ## Scanner and File Descriptor
 
 The scanner is responsible for lexical analysis, converting the source code from a sequence of characters into a stream of tokens.
