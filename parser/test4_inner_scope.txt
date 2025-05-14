@@ -1,0 +1,17 @@
+program
+var outerVar : integer;
+
+begin
+    outerVar := 10;
+    
+    begin
+        var innerVar : integer;
+        innerVar := 20;
+        outerVar := 30; ## Using outer scope variable is fine
+    end;
+    
+    ## Using innerVar here should produce an error
+    innerVar := 40;
+    
+    write(outerVar);
+end;

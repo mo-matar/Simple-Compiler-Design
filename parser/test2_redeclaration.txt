@@ -1,0 +1,9 @@
+program
+var variable1 : integer;
+var variable1 : integer; ## This should produce a redeclaration error
+
+begin
+    variable1 := 10;
+    
+    write(variable1);
+end;

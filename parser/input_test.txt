@@ -20,13 +20,64 @@ begin
 mo := 5;
 mo := 9;
 end
-else begin
+else if (true) then begin
 mo := 9;
 mo := q;
 end
+else begin
+z := z and 1;
+end
+fi
 fi;
+end;
+
+
+function isEven (x : integer) : boolean
+begin
+var p : integer;
+var y : integer;
+
+while (x = 5) do
+x := -(x)
+od;
+
+for x := 0 to 100 do
+x := 3
+od;
+
+read(x);
+write(  x);
+
+return(x);
+end;
+
+
+procedure proc(x : integer, m : string, t:boolean)
+begin
+var mo : integer;
+var z :     integer;
+var p:string;
+
+x := 0;
+
+begin
+
+var x : integer;
+
+end;
 
 
 end;
 
 var uuu : string;
+
+
+begin
+
+x := 7;
+return(x);
+
+end;
+
+
+

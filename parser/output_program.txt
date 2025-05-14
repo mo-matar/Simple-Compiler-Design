@@ -1,28 +1,46 @@
 program
-  var x: integer;
-  var y: string;
-  var z: integer;
-  constant q = 10;
-  constant i = -5;
-  function factorial (x : integer, m : string, t : boolean) : integer
+  var a: integer;
+  var b: integer;
+  var c: integer;
+  var d: boolean;
+  var e: boolean;
+  constant MAX = -150;
+  function testOperators (x : integer) : boolean
     begin
-      var mo : integer;
-      var z : integer;
-      var p : string;
-      y := 5;
-      mo := ((y + 5) / y);
-      mo := (3 - q);
-      factorial(5, 5, z);
-      if (x > 5) then
-        begin
-          mo := 5;
-          mo := 9;
-        end
-      else
-        begin
-          mo := 9;
-          mo := q;
-        end;
+      a := (x + 5);
+      b := (x - 3);
+      c := (a * b);
+      a := (c / 2);
+      d := (a = b);
+      d := (a != b);
+      d := (a < b);
+      d := (a <= b);
+      d := (a > b);
+      d := (a >= b);
+      e := (d and true);
+      e := (d or false);
+      e := (not e);
+      a := (-b);
+      a := (((b + c) * (b - c)) / (2 + 3));
+      d := (((a > b) and (c < a)) or (b != c));
+      return(d);
     end;
-  var uuu: string;
-  
+  begin
+    a := 10;
+    b := 5;
+    if ((a > b) and (b < MAX)) then
+      c := (a + b)
+    else
+      c := (a - b)
+    fi;
+    d := testOperators(c);
+    for a := 1 to 10 do
+      b := (b + 1)
+    od;
+    while (b < 20) do
+      b := (b + 1)
+    od;
+    write(a);
+    write(b);
+    write(c);
+  end

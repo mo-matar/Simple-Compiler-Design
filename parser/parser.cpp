@@ -98,7 +98,7 @@ TOKEN* Parser::match(LEXEME_TYPE expected) {
         return matchedToken;
     } else {
         had_error = true;
-        errorFile << "Syntax Error: Expected token of type " 
+        errorFile << "Match Syntax Error: Expected token of type " 
                   << getTokenTypeName(expected) 
                   << " but found " 
                   << getTokenTypeName(currentToken->type) 
@@ -110,6 +110,7 @@ TOKEN* Parser::match(LEXEME_TYPE expected) {
 
 void Parser::checkForRedeclaration(TOKEN* idToken) {
     // Only check in the current scope (not parent scopes)
+    
     STEntry* STE = current_scope->GetEntryCurrentScope(idToken->str_ptr);
     if (STE != nullptr){
         had_error = true;
@@ -289,19 +290,39 @@ AST* Parser::parseDecl() {
         }
         
         case kw_procedure: {
-            // std::cout << "Found procedure keyword" << std::endl;
-            // match(kw_procedure);
-            // idToken = match(lx_identifier);
-            // std::cout << "Found identifier: " << idToken->str_ptr << std::endl;
-            // match(lx_lparen);
-            // std::cout << "Found left parenthesis, parsing formals" << std::endl;
-            // ste_list* formalsNode = parseFormals();
-            // match(lx_rparen);
-            // std::cout << "Found right parenthesis, parsing block" << std::endl;
-            // AST* blockNode = parseBlock();
+            // std::cout << "Found function keyword" << std::endl;
+            match(kw_procedure);
+
+            idToken = match(lx_identifier);
             
-            // STE = checkAndAddSymbol(idToken, getSTE_type(typeNode));
-            // declNode = make_ast_node(ast_routine_decl, STE, formalsNode, blockNode);
+            // First add the function to the current scope
+            STE = checkAndAddSymbol(idToken, STE_ROUTINE);
+            
+            // Enter a new scope for the function body
+            enter_scope();
+            
+            match(lx_lparen);
+            ste_list* formalsNode = parseFormalList();
+            
+            // Store additional function info
+            STE->Formals = formalsNode;
+            STE->ResultType = type_none;                
+            // Here you would parse the function body
+            AST* blockNode = parseBlock();
+            
+            // Exit the function scope
+            exit_scope();
+            
+            declNode = make_ast_node(ast_routine_decl, STE, formalsNode, type_none, blockNode);
+
+
+            break;
+        }
+        case kw_begin: {
+            //main program block
+            enter_scope();
+            declNode = parseBlock();
+            exit_scope();
             break;
         }
         
@@ -559,7 +580,7 @@ AST* Parser::parsePrimaryExpr() {
             had_error = true;
             errorFile << "Syntax Error: Expected a primary expression but found " 
                       << getTokenTypeName(currentToken->type) 
-                      << "." << std::endl;
+                      << "on line:" << scanner->fd->GetLineNum() << std::endl;
             node = make_ast_node(ast_integer, 0);
             break;
         }
@@ -604,7 +625,7 @@ AST* Parser::parsePrimaryExprTail(AST* idNode) {
 
 ste_list* Parser::parseFormalList() {
     if (currentToken->type == lx_rparen) {
-        // std::cout << "No formals found, returning empty list" << std::endl;
+        match(lx_rparen);
         return nullptr;
     }
     
@@ -726,9 +747,79 @@ AST* Parser::parseStmt() {
             stmtNode = parseIfTail(condNode, thenStmtNode);
             break;
         }
+        case kw_while: {
+            match(kw_while);
+            AST* condNode = parseExpr();
+            match(kw_do);
+            AST* bodyNode = parseStmt();
+            match(kw_od);
+            stmtNode = make_ast_node(ast_while, condNode, bodyNode);
+            break;
+        }
+        case kw_for : {
+            match(kw_for);
+            TOKEN* idToken = match(lx_identifier);
+            STEntry* entry = current_scope->GetSymbolFromScopes(idToken->str_ptr);
+            if(entry == nullptr) {
+                had_error = true;
+                errorFile << "Undefined identifier: " << idToken->str_ptr << "on line: " 
+                          << scanner->getLineNum() << std::endl;
+            }
+            match(lx_colon_eq);
+            AST* lowerBoundNode = parseExpr();
+            match(kw_to);
+            AST* upperBoundNode = parseExpr();
+            match(kw_do);
+            AST* bodyNode = parseStmt();
+            match(kw_od);
+            stmtNode = make_ast_node(ast_for, entry, lowerBoundNode, upperBoundNode, bodyNode);
+            break;
+        }
+
+        case kw_read: {
+            match(kw_read);
+            match(lx_lparen);
+            TOKEN* idToken = match(lx_identifier);
+            STEntry* entry = current_scope->GetSymbolFromScopes(idToken->str_ptr);
+            if (entry == nullptr) {
+                had_error = true;
+                errorFile << "Undefined identifier: " << idToken->str_ptr << std::endl;
+                scanner->fd->ReportError(" ");
+            }
+            match(lx_rparen);
+            stmtNode = make_ast_node(ast_read, entry);
+            break;
+        }
+
+        case kw_write: {
+            match(kw_write);
+            match(lx_lparen);
+            TOKEN* idToken = match(lx_identifier);
+            STEntry* entry = current_scope->GetSymbolFromScopes(idToken->str_ptr);
+            if (entry == nullptr) {
+                had_error = true;
+                errorFile << "Undefined identifier: " << idToken->str_ptr << std::endl;
+                scanner->fd->ReportError(" ");
+            }
+            match(lx_rparen);
+            stmtNode = make_ast_node(ast_write, entry);
+            break;
+        }
+        case kw_return: {
+            match(kw_return);
+            match(lx_lparen);
+            AST* exprNode = parseExpr();
+            match(lx_rparen);
+            stmtNode = make_ast_node(ast_return, exprNode);
+            break;
+        }
+
         case kw_begin: {
+            //inner scope inside a block
+            enter_scope();
             stmtNode = parseBlock();
             // stmtNode = make_ast_node(ast_block, nullptr, stmtList);
+            exit_scope();
             break;
         }
         default: {

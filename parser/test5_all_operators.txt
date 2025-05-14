@@ -1,0 +1,65 @@
+program
+var a : integer;
+var b : integer;
+var c : integer;
+var d : boolean;
+var e : boolean;
+constant MAX = (100/2)*(-(3));
+
+function testOperators(x : integer) : boolean
+begin
+    ## Testing arithmetic operators: +, -, *, /
+    a := x + 5;
+    b := x - 3;
+    c := a * b;
+    a := c / 2;
+    
+    ## Testing relational operators: =, !=, <, <=, >, >=
+    d := (a = b);
+    d := (a != b);
+    d := (a < b);
+    d := (a <= b);
+    d := (a > b);
+    d := (a >= b);
+    
+    ## Testing logical operators: and, or, not
+    e := (d and true);
+    e := (d or false);
+    e := not(e);
+    
+    ## Testing unary minus
+    a := -(b);
+    
+    ## Testing complex expressions with precedence
+    a := (b + c) * (b - c) / (2 + 3);
+    d := (a > b) and (c < a) or (b != c);
+    
+    return(d);
+end;
+
+begin
+    a := 10;
+    b := 5;
+    
+    if (a > b) and (b < MAX) then
+        c := a + b
+    else
+        c := a - b
+    fi;
+    
+    d := testOperators(c);
+    
+    ## Testing for loop
+    for a := 1 to 10 do
+        b := b + 1
+    od;
+    
+    ## Testing while loop
+    while (b < 20) do
+        b := b + 1
+    od;
+    
+    write(a);
+    write(b);
+    write(c);
+end;

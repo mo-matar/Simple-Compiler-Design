@@ -1,0 +1,18 @@
+program
+var outerVar : integer;
+
+function testScope() : integer
+begin
+    ## Using outerVar from global scope - should not produce an error
+    outerVar := 100;
+    
+    return(outerVar);
+end;
+
+begin
+    outerVar := 10;
+    
+    write(outerVar);
+    outerVar := testScope();
+    write(outerVar);
+end;

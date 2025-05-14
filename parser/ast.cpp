@@ -343,8 +343,7 @@ static void p_a_n(FILE *fp, AST *node, int indent) {
             fprintf(fp, "%s := ", ste_name(node->f.a_assign.lhs));
             p_a_n(fp, node->f.a_assign.rhs, indent);
             break;
-            
-        case ast_if:
+              case ast_if:
             fprintf(fp, "if ");
             p_a_n(fp, node->f.a_if.predicate, indent);
             fprintf(fp, " then");
@@ -357,6 +356,8 @@ static void p_a_n(FILE *fp, AST *node, int indent) {
                 nl_indent(fp, indent + 2);
                 p_a_n(fp, node->f.a_if.altern, indent + 2);
             }
+            nl_indent(fp, indent);
+            fprintf(fp, "fi");
             break;
             
         case ast_while:
@@ -394,13 +395,18 @@ static void p_a_n(FILE *fp, AST *node, int indent) {
             print_ast_list(fp, node->f.a_call.arg_list, ", ", -1);
             fprintf(fp, ")");
             break;
-            
-        case ast_block:
+              case ast_block:
             fprintf(fp, "begin");
             nl_indent(fp, indent + 2);
             print_ste_list(fp, node->f.a_block.vars, "var ", ";", indent + 2);
-            print_ast_list(fp, node->f.a_block.stmts, ";\n", indent + 2);
-            fprintf(fp, ";");
+            
+            // Only print the statement list with separator if it's not empty
+            if (node->f.a_block.stmts != NULL) {
+                print_ast_list(fp, node->f.a_block.stmts, ";\n", indent + 2);
+                // Only add semicolon if there are statements
+                fprintf(fp, ";");
+            }
+            
             nl_indent(fp, indent);
             fprintf(fp, "end");
             break;
@@ -481,11 +487,11 @@ static void p_a_n(FILE *fp, AST *node, int indent) {
             p_a_n(fp, node->f.a_unary_op.arg, indent);
             fprintf(fp, ")");
             break;
-              case ast_program:
+              case ast_program:{
             fprintf(fp, "program");
             nl_indent(fp, indent + 2);
             print_ast_list(fp, node->f.a_program.statements, "", indent + 2);  // Use empty separator
-            break;
+            break;}
 
         case ast_eof:
             fprintf(fp, "EOF");
