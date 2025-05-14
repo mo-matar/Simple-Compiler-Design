@@ -73,6 +73,11 @@ public:    // Members
     void printParsedAST(AST* node);
     void checkForRedeclaration(TOKEN* idToken);
 
+    bool noVariableDecl();// function to check if there are no variable declarations and just statements
+    bool noStatementsLeft() // function to check if there are no statements left
+    {
+        return (currentToken->type == kw_end || currentToken->type == lx_eof);
+    }
     Parser(FileDescriptor* fd);
     ~Parser();
 

@@ -4,7 +4,7 @@ program
   var z: integer;
   constant q = 10;
   constant i = -5;
-  function factorial (x : integer;, m : string;, t : boolean;) : integer
+  function factorial (x : integer, m : string, t : boolean) : integer
     begin
       var mo : integer;
       var z : integer;
@@ -13,6 +13,16 @@ program
       mo := ((y + 5) / y);
       mo := (3 - q);
       factorial(5, 5, z);
+      if (x > 5) then
+        begin
+          mo := 5;
+          mo := 9;
+        end
+      else
+        begin
+          mo := 9;
+          mo := q;
+        end;
     end;
   var uuu: string;
   

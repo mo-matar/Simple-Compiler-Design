@@ -15,6 +15,17 @@ mo := (y+5)/(y);
 mo := (3-q);
 factorial(5 , 5, z);
 
+if (x > 5) then
+begin
+mo := 5;
+mo := 9;
+end
+else begin
+mo := 9;
+mo := q;
+end
+fi;
+
 
 end;
 

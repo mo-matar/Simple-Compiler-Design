@@ -308,6 +308,7 @@ static void p_a_n(FILE *fp, AST *node, int indent) {
                    type_names[node->f.a_var_decl.type]);
                    
             nl_indent(fp, indent);
+            
             break;
             
         case ast_const_decl:
@@ -397,7 +398,7 @@ static void p_a_n(FILE *fp, AST *node, int indent) {
         case ast_block:
             fprintf(fp, "begin");
             nl_indent(fp, indent + 2);
-            print_ste_list(fp, node->f.a_block.vars, "var ", "", indent + 2);
+            print_ste_list(fp, node->f.a_block.vars, "var ", ";", indent + 2);
             print_ast_list(fp, node->f.a_block.stmts, ";\n", indent + 2);
             fprintf(fp, ";");
             nl_indent(fp, indent);
@@ -519,7 +520,7 @@ static void print_ste_list(FILE *fp, ste_list *list, const char *prefix, const c
     for (; list != NULL; list = list->tail) {
         fprintf(fp, "%s%s : %s", prefix, ste_name(list->head),
                type_names[ste_var_type(list->head)]);
-                           fprintf(fp, ";");
+                           //fprintf(fp, ";");
 
                
         if (list->tail || indent >= 0) fprintf(fp, "%s", separator);

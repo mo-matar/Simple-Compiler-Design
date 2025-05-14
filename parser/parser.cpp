@@ -37,6 +37,8 @@ const char* Parser::getTokenTypeName(LEXEME_TYPE type) {
         case kw_string: return "Keyword string";
         case kw_bool: return "Keyword bool";
         case kw_if: return "Keyword if";
+        case kw_fi: return "Keyword fi";
+        case kw_then: return "Keyword then";
         case kw_else: return "Keyword else";
         case kw_read: return "Keyword read";
         case kw_write: return "Keyword write";
@@ -100,7 +102,7 @@ TOKEN* Parser::match(LEXEME_TYPE expected) {
                   << getTokenTypeName(expected) 
                   << " but found " 
                   << getTokenTypeName(currentToken->type) 
-                  << "." << std::endl;
+                  << "." << "on line:" << scanner->getLineNum() << std::endl;
         exit(1); // Exit on error
         return nullptr;
     }
@@ -636,6 +638,8 @@ ste_list* Parser::parseFormalList() {
 }
 
 ste_list* Parser::parseVarDeclList() {
+    if(noVariableDecl()) 
+        return nullptr;
     ste_list* varDeclList = nullptr;
     STEntry* varDecl = parseVarDecl();
 
@@ -651,7 +655,19 @@ ste_list* Parser::parseVarDeclList() {
 }
 // Global scanner and file descriptor pointers
 
+bool Parser::noVariableDecl() {
+    if (currentToken->type == lx_identifier || currentToken->type == kw_if ||
+        currentToken->type == kw_while || currentToken->type == kw_for ||
+        currentToken->type == kw_read || currentToken->type == kw_write ||
+        currentToken->type == kw_return || currentToken->type == kw_begin) {
+        return true;
+    }
+    return false;
+}
+
+
 STEntry* Parser::parseVarDecl() {
+    
     match(kw_var);
     // std::cout << "Found var keyword" << std::endl;
 
@@ -665,18 +681,21 @@ STEntry* Parser::parseVarDecl() {
     return STE;
 }
 
+
+
 ast_list* Parser::parseStmtList() {
     ast_list* stmtList = nullptr;
     
     if (currentToken->type == kw_end) {
         // std::cout << "End of statement list reached, returning empty list" << std::endl;
-        return stmtList;
-    }
+        return stmtList;}
+    
     
     AST* stmtNode = parseStmt();
     match(lx_semicolon);
     
     stmtList = cons_ast(stmtNode, parseStmtList());
+    
     
     return stmtList;
 }
@@ -694,6 +713,22 @@ AST* Parser::parseStmt() {
             }
 
             return parseStmtIdTail(entry);
+            break;
+        }
+        case kw_if : {
+            match(kw_if);
+            AST* condNode = parseExpr();
+            match(kw_then);
+            // ast_list* thenStmtNode = parseStmtList();
+            // stmtNode = make_ast_node(ast_block, nullptr, thenStmtNode);
+            AST* thenStmtNode = parseStmt();
+
+            stmtNode = parseIfTail(condNode, thenStmtNode);
+            break;
+        }
+        case kw_begin: {
+            stmtNode = parseBlock();
+            // stmtNode = make_ast_node(ast_block, nullptr, stmtList);
             break;
         }
         default: {
@@ -735,6 +770,23 @@ AST* Parser::parseStmtIdTail(STEntry* entry) {
 
     return stmtNode;
 
+}
+
+
+AST* Parser::parseIfTail(AST* condNode, AST* thenStmtNode) {
+    AST* stmtNode = nullptr;
+    
+    if (currentToken->type == kw_else) {
+        match(kw_else);
+        AST* elseStmtNode = parseStmt();
+        stmtNode = make_ast_node(ast_if, condNode, thenStmtNode, elseStmtNode);
+        match(kw_fi);
+    } else {
+        match(kw_fi);
+        stmtNode = make_ast_node(ast_if, condNode, thenStmtNode, nullptr);
+    }
+    
+    return stmtNode;
 }
 
 
