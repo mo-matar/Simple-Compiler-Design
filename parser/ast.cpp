@@ -3,8 +3,8 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
-#include "ast.h"
-#include "FileDescriptor.h"
+#include "../include/ast.h"
+#include "../include/FileDescriptor.h"
 
 // Type name strings for printing
 static const char* type_names[] = {

@@ -1,4 +1,5 @@
-#include "Scanner.h"
+#include "../include/Scanner.h"
+#include <unordered_map>  // Add this include for std::unordered_map
 
 char *keywords[] =
         {
@@ -16,6 +17,15 @@ LEXEME_TYPE lexTypes[] =
         kw_od, kw_or, kw_procedure, kw_program,kw_read, kw_return,
         kw_string, kw_then, kw_to, kw_true, kw_var, kw_while, kw_write
 };
+
+// Initialize the static keyword map
+std::unordered_map<std::string, int> Scanner::keywordMap = []() {
+    std::unordered_map<std::string, int> map;
+    for (unsigned int i = 0; i < sizeof(lexTypes) / sizeof(LEXEME_TYPE); i++) {
+        map[keywords[i]] = i;
+    }
+    return map;
+}();
 
 TOKEN* Scanner::Scan()
 {
@@ -457,14 +467,14 @@ void Scanner::skipSpaces(char &currentChar)
 int Scanner::checkKeyword(char *word)
 {
     std::cout << "Checking if '" << word << "' is a keyword... ";
-    // Check if the given word is a keyword, and return its index
-    for (unsigned int i = 0; i < sizeof(lexTypes) / sizeof(LEXEME_TYPE); i++) {
-        if (strcmp(word, keywords[i]) == 0) {
-            std::cout << "Yes! Found at index " << i << " with type " << lexTypes[i] << std::endl;
-            return i;
-        }
+    
+    // Simply look up the word in our predefined hashmap
+    auto it = keywordMap.find(word);
+    if (it != keywordMap.end()) {
+        std::cout << "Yes! Found at index " << it->second << " with type " << lexTypes[it->second] << std::endl;
+        return it->second;
     }
-
+    
     // Return -1 if the word is not a keyword
     std::cout << "No, it's not a keyword." << std::endl;
     return -1;

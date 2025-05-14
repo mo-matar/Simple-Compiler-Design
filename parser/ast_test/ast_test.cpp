@@ -1,13 +1,12 @@
 #include <stdio.h>
-#include "ast.h"
-#include "symbol_table_entry.h"
-#include "FileDescriptor.h"
+#include "../../include/ast.h"
+#include "../../include/symbol_table_entry.h"
+#include "../../include/FileDescriptor.h"
 
-int main() {
-    // Create an output file
-    FILE *output_file = fopen("ast_test.txt", "w");
+int main() {    // Create an output file
+    FILE *output_file = fopen("../../tests/output/ast_test.txt", "w");
     if (!output_file) {
-        printf("Error: Could not open ast_test.txt for writing\n");
+        printf("Error: Could not open ../../tests/output/ast_test.txt for writing\n");
         return 1;
     }
     

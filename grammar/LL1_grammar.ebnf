@@ -20,7 +20,7 @@ formals_tail = "," id ":" type formals_tail | "λ" ;
 stmt_list = stmt ";" stmt_list | "λ" ;
 
 stmt = id stmt_id_tail
-     | "if" expr "then" stmt if_tail #stmtlist not stmt
+     | "if" expr "then" stmt if_tail
      | "while" expr "do" stmt "od"
      | "for" id ":=" expr "to" expr "do" stmt "od"
      | "read" "(" id ")"

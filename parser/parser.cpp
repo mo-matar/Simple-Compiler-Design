@@ -1,4 +1,4 @@
-#include "parser.h"
+#include "../include/parser.h"
 #include <stdarg.h>
 #include <vector>
 #include <fstream>
@@ -6,24 +6,21 @@
 Parser::Parser(FileDescriptor* fd) {
     scanner = new Scanner(fd);
     table = new SymbolTable();
-    current_scope = table;  // Initialize the global current_scope
+    current_scope = table;
     currentToken = new TOKEN();
     programAST = nullptr;
     had_error = false;
     
-    // Open error file
-    errorFile.open("c:\\Users\\Hp\\Desktop\\Compiler Design\\project\\Simple-Compiler-Design\\parser\\parse_errors.txt", std::ios::out);
+    errorFile.open("../tests/output/parse_errors.txt", std::ios::out);
     if (!errorFile.is_open()) {
         std::cout << "Warning: Could not open parse_errors.txt for writing." << std::endl;
     }
 }
 
 Parser::~Parser() {
-    // Close error file
     if (errorFile.is_open()) {
         errorFile.close();
     }
-    // Other cleanup as needed
     delete scanner;
     delete table;
     delete currentToken;
@@ -93,8 +90,7 @@ TOKEN* Parser::match(LEXEME_TYPE expected) {
     if (currentToken->type == expected) {
         TOKEN* matchedToken = currentToken;
         std::cout << "Matched token: " << getTokenTypeName(currentToken->type) << std::endl;
-        currentToken = scanner->Scan(); // Advance to the next token
-        // std::cout << "Next token: " << getTokenTypeName(currentToken->type) << std::endl;
+        currentToken = scanner->Scan();
         return matchedToken;
     } else {
         had_error = true;
@@ -103,14 +99,12 @@ TOKEN* Parser::match(LEXEME_TYPE expected) {
                   << " but found " 
                   << getTokenTypeName(currentToken->type) 
                   << "." << "on line:" << scanner->getLineNum() << std::endl;
-        exit(1); // Exit on error
+        exit(1);
         return nullptr;
     }
 }
 
 void Parser::checkForRedeclaration(TOKEN* idToken) {
-    // Only check in the current scope (not parent scopes)
-    
     STEntry* STE = current_scope->GetEntryCurrentScope(idToken->str_ptr);
     if (STE != nullptr){
         had_error = true;
@@ -119,12 +113,9 @@ void Parser::checkForRedeclaration(TOKEN* idToken) {
         errorFile << error_msg << std::endl;
         return;
     }
-    
-    // std::cout << "No redeclaration found for identifier: " << idToken->str_ptr << std::endl;
 }
 
 STEntry* Parser::checkAndAddSymbol(TOKEN* idToken, STE_TYPE steType) {
-    // Only check in the current scope
     STEntry* STE = current_scope->GetEntryCurrentScope(idToken->str_ptr);
     if (STE != nullptr){
         had_error = true;
@@ -133,23 +124,16 @@ STEntry* Parser::checkAndAddSymbol(TOKEN* idToken, STE_TYPE steType) {
         errorFile << error_msg << std::endl;
         return nullptr;
     }
-    
-    // std::cout << "No redeclaration found for identifier: " << idToken->str_ptr << std::endl;
     return current_scope->PutSymbol(idToken->str_ptr, steType, scanner->getLineNum());
 }
 
 void Parser::scan_and_check_illegal_token() {
     currentToken = scanner->Scan();
-    // std::cout << "Scanned token type: " << currentToken->type << " (" << getTokenTypeName(currentToken->type) << ")" << std::endl;
-    if (currentToken->type == lx_identifier && currentToken->str_ptr) {
-        // std::cout << "Identifier value: " << currentToken->str_ptr << std::endl;
-    }
     
     if (currentToken->type == illegal_token) {
         had_error = true;
         errorFile << "Error: Illegal token encountered from parser." << std::endl;
     }
-    // else std::cout << "no illegal token yet... parser" << std::endl;
 }
 
 void Parser::printParsedAST(AST* node) {
@@ -157,7 +141,7 @@ void Parser::printParsedAST(AST* node) {
         std::cout << "Error: Null AST node encountered." << std::endl;
         return;
     }
-    FILE* outputFile = fopen("output_program.txt", "w");
+    FILE* outputFile = fopen("../tests/output/output_program.txt", "w");
 
     print_ast_node(outputFile, node);
 }
@@ -165,12 +149,8 @@ void Parser::printParsedAST(AST* node) {
 AST* Parser::start_parsing() {
     std::cout << "Starting parsing..." << std::endl;
     
-    // programAST = new AST();
-    
     ast_list* programStatements = parseProgram();
-    // std::cout << "Program parsed, creating AST node" << std::endl;
     AST* programAST = make_ast_node(ast_program, programStatements);
-    // std::cout << "AST node created" << std::endl;
 
     return programAST;
 }
@@ -188,16 +168,12 @@ ast_list* Parser::parseDeclList() {
     ast_list* declList = nullptr;
 
     if(currentToken->type == lx_eof) {
-        // std::cout << "End of file reached, returning empty list" << std::endl;
         return declList;
     }
-    else{//not lambda, then it is a declaration
+    else {
         AST* decl = parseDecl();
-
         match(lx_semicolon);
-
         declList = cons_ast(decl, parseDeclList());
-
         return declList;
     }
 }
@@ -224,12 +200,9 @@ AST* Parser::parseDecl() {
     
     switch (currentToken->type) {
         case kw_var: {
-            // std::cout << "Found var keyword" << std::endl;
             match(kw_var);
             idToken = match(lx_identifier);
-            // std::cout << "Found identifier: " << idToken->str_ptr << std::endl;
             match(lx_colon);
-            // std::cout << "Found colon, parsing type" << std::endl;
             typeNode = parseType();
             
             STE = checkAndAddSymbol(idToken, getSTE_type(typeNode));
@@ -238,36 +211,25 @@ AST* Parser::parseDecl() {
         }
         
         case kw_constant: {
-            // std::cout << "Found constant keyword" << std::endl;
             match(kw_constant);
             idToken = match(lx_identifier);
-            // std::cout << "Found identifier: " << idToken->str_ptr << std::endl;
             match(lx_eq);
-            // std::cout << "Found equals sign, parsing expression" << std::endl;
             
-            // Check for redeclarations, if not, put it in ST
             STE = checkAndAddSymbol(idToken, STE_INT);
             
-            // Parse the expression
             AST* exprNode = parseExpr();
             STE->ConstValue = eval_ast_expr(scanner->fd, exprNode);
-            // std::cout << "Evaluated constant expression: " << STE->ConstValue << std::endl;
             
-            // Create the const_decl node with expression
             declNode = make_ast_node(ast_const_decl, STE, make_ast_node(ast_integer, STE->ConstValue));
             break;
+
         }
-
         case kw_function: {
-            // std::cout << "Found function keyword" << std::endl;
             match(kw_function);
-
             idToken = match(lx_identifier);
             
-            // First add the function to the current scope
             STE = checkAndAddSymbol(idToken, STE_ROUTINE);
             
-            // Enter a new scope for the function body
             enter_scope();
             
             match(lx_lparen);
@@ -275,14 +237,11 @@ AST* Parser::parseDecl() {
             match(lx_colon);
             typeNode = parseType();
             
-            // Store additional function info
             STE->Formals = formalsNode;
             STE->ResultType = typeNode;
             
-            // Here you would parse the function body
             AST* blockNode = parseBlock();
             
-            // Exit the function scope
             exit_scope();
             
             declNode = make_ast_node(ast_routine_decl, STE, formalsNode, typeNode, blockNode);
@@ -290,36 +249,26 @@ AST* Parser::parseDecl() {
         }
         
         case kw_procedure: {
-            // std::cout << "Found function keyword" << std::endl;
             match(kw_procedure);
-
             idToken = match(lx_identifier);
             
-            // First add the function to the current scope
             STE = checkAndAddSymbol(idToken, STE_ROUTINE);
             
-            // Enter a new scope for the function body
             enter_scope();
             
             match(lx_lparen);
             ste_list* formalsNode = parseFormalList();
             
-            // Store additional function info
             STE->Formals = formalsNode;
-            STE->ResultType = type_none;                
-            // Here you would parse the function body
+            STE->ResultType = type_none;
+            
             AST* blockNode = parseBlock();
             
-            // Exit the function scope
             exit_scope();
             
             declNode = make_ast_node(ast_routine_decl, STE, formalsNode, type_none, blockNode);
-
-
             break;
-        }
-        case kw_begin: {
-            //main program block
+        }        case kw_begin: {
             enter_scope();
             declNode = parseBlock();
             exit_scope();
@@ -340,16 +289,13 @@ AST* Parser::parseDecl() {
 
 AST* Parser::parseBlock() {
     AST* blockNode = nullptr;
-    // std::cout << "Parsing block..." << std::endl;
     match(kw_begin);
     ste_list* varDeclList = parseVarDeclList();
     ast_list* stmtList = parseStmtList();
 
     match(kw_end);
-    // std::cout << "Block parsed successfully." << std::endl;
     blockNode = make_ast_node(ast_block, varDeclList, stmtList);
     
-
     return blockNode;
 }
 
@@ -358,18 +304,12 @@ j_type Parser::parseType() {
         case kw_integer:
             match(kw_integer);
             return type_integer;
-
-            break;
         case kw_string:
             match(kw_string);
             return type_string;
-
-            break;
         case kw_bool:
             match(kw_bool);
             return type_boolean;
-            // break statement not needed here because of the return statement
-
         default:
             had_error = true;
             errorFile << "Syntax Error: Expected a type but found " 
@@ -629,12 +569,10 @@ ste_list* Parser::parseFormalList() {
         return nullptr;
     }
     
-    // Collect all parameters first in a vector to maintain order
     std::vector<STEntry*> params;
     
     while (true) {
         TOKEN* idToken = match(lx_identifier);
-        // std::cout << "Found identifier: " << idToken->str_ptr << std::endl;
         match(lx_colon);
         j_type typeNode = parseType();
         
@@ -642,14 +580,12 @@ ste_list* Parser::parseFormalList() {
         params.push_back(STE);
         
         if(currentToken->type == lx_rparen) {
-            // std::cout << "End of formals list reached" << std::endl;
             match(lx_rparen);
             break;
         }
         match(lx_comma);
     }
     
-    // Build the list in the correct order (last to first)
     ste_list* formals = nullptr;
     for (int i = params.size() - 1; i >= 0; i--) {
         formals = cons_ste(params[i], formals);
@@ -671,10 +607,8 @@ ste_list* Parser::parseVarDeclList() {
     } else {
         varDeclList = cons_ste(varDecl, nullptr);
     }
-    
-    return varDeclList;
+      return varDeclList;
 }
-// Global scanner and file descriptor pointers
 
 bool Parser::noVariableDecl() {
     if (currentToken->type == lx_identifier || currentToken->type == kw_if ||
@@ -688,12 +622,8 @@ bool Parser::noVariableDecl() {
 
 
 STEntry* Parser::parseVarDecl() {
-    
     match(kw_var);
-    // std::cout << "Found var keyword" << std::endl;
-
     TOKEN* idToken = match(lx_identifier);
-    // std::cout << "Found identifier: " << idToken->str_ptr << std::endl;
     match(lx_colon);
     j_type typeNode = parseType();
     
@@ -708,15 +638,13 @@ ast_list* Parser::parseStmtList() {
     ast_list* stmtList = nullptr;
     
     if (currentToken->type == kw_end) {
-        // std::cout << "End of statement list reached, returning empty list" << std::endl;
-        return stmtList;}
-    
+        return stmtList;
+    }
     
     AST* stmtNode = parseStmt();
     match(lx_semicolon);
     
     stmtList = cons_ast(stmtNode, parseStmtList());
-    
     
     return stmtList;
 }
@@ -740,8 +668,6 @@ AST* Parser::parseStmt() {
             match(kw_if);
             AST* condNode = parseExpr();
             match(kw_then);
-            // ast_list* thenStmtNode = parseStmtList();
-            // stmtNode = make_ast_node(ast_block, nullptr, thenStmtNode);
             AST* thenStmtNode = parseStmt();
 
             stmtNode = parseIfTail(condNode, thenStmtNode);
@@ -818,7 +744,6 @@ AST* Parser::parseStmt() {
             //inner scope inside a block
             enter_scope();
             stmtNode = parseBlock();
-            // stmtNode = make_ast_node(ast_block, nullptr, stmtList);
             exit_scope();
             break;
         }

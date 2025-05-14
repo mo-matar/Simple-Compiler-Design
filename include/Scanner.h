@@ -2,6 +2,9 @@
 #define COMPILERPARSER_SCANNER_H
 
 #include "FileDescriptor.h"
+#include <unordered_map>
+#include <string>
+
 #define LETTER_CHAR 1
 #define NUMERIC_DIGIT 2
 #define SEPARATOR 3
@@ -50,6 +53,9 @@ public:
     bool readMore;
     TOKEN* lastToken;
     FileDescriptor *fd;
+    
+    // Static hashmap for keyword lookup
+    static std::unordered_map<std::string, int> keywordMap;
 
     Scanner(FileDescriptor *fd){
         this->fd = fd;

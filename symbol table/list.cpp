@@ -1,4 +1,4 @@
-#include "list.h"
+#include "../include/list.h"
 
 /**
  * @brief STList::STList
@@ -33,7 +33,7 @@ STEntry* STList::FindEntry(char *name)
  * @param type : Type of variable
  * @return : True if the node is added and False if the Entry Already exists in the Table
  */
-bool STList::AddEntry(char *name, STE_TYPE type)
+bool STList::AddEntry(char *name, STE_TYPE type, int line)
 {
   STEntry *ste = FindEntry(name);
   bool added = false;
@@ -43,7 +43,7 @@ bool STList::AddEntry(char *name, STE_TYPE type)
   }
   else
   {
-      ste = new STEntry(name, type) ;
+      ste = new STEntry(name, type, line) ;
       ste->Next = Head;
       Head = ste;
       added = true;

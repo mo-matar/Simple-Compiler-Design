@@ -1,0 +1,25 @@
+program
+  var num: integer;
+  var result: boolean;
+  function isEven (x : integer) : boolean
+    begin
+      var remainder : integer;
+      remainder := ((x / 2) * 2);
+      return((remainder = x));
+    end;
+  begin
+    var msg : string;
+    read(num);
+    result := isEven(num);
+    if result then
+      begin
+        msg := "number is even";
+        write(num);
+      end
+    else
+      begin
+        msg := "number is odd";
+        write(num);
+      end
+    fi;
+  end
