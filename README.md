@@ -70,15 +70,6 @@ The N23 language is defined by a context-free grammar, initially presented in a 
 
 The conversion ensures that the grammar can be parsed without backtracking, optimizing the parsing process while maintaining the language's intended semantics.
 
-<<<<<<< HEAD
-The usual [Markdown Cheatsheet](https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet)
-does not cover some of the more advanced Markdown tricks, but here
-is one. You can combine verbatim HTML with your Markdown. 
-This is particularly useful for tables.
-Notice that with **empty separating lines** we can use Markdown inside HTML:
-=======
->>>>>>> 2123f83facd3e5f1f00ccd885b400fbb3edd16e6
-
 <table>
 <tr>
 <th>Regular Grammar</th>
