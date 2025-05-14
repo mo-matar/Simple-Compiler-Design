@@ -339,6 +339,7 @@ The compiler implements robust error handling:
 
 - **Lexical Errors**: Detected by the scanner (e.g., invalid characters, malformed tokens)
 - **Syntax Errors**: Identified by the parser (e.g., missing semicolons, unbalanced blocks)
+- - **Semantic Errors**: Identified by tha parser (simple semantic errors that the parser can easily detect like assigning a value to a function)
 - **Error Reporting**: Includes line numbers and descriptive messages
 - **Error Output**: Errors are logged to a separate file for reference
 
