@@ -9,7 +9,7 @@ This compiler project implements a Pascal/Ada-inspired language with structured 
 ## Sample Code
 
 ```pascal
-program;
+program
 
   var x : integer;
   var y : integer;
@@ -20,35 +20,35 @@ program;
     var result : integer;
     result := 1;
     for i := 1 to n do
-      result := result * i
+      result := result * i;
     od;
-    return(result)
+    return(result);
   end;
   
   procedure printNumber(num : integer)
   begin
-    write(num)
+    write(num);
   end;
   
   function isEven(n : integer) : boolean
   begin
-    return(n / 2 * 2 = n)
+    return(n / 2 * 2 = n);
   end;
   
   begin
     read(x);
     if x > MAX then
-      x := MAX
+      x := MAX;
     fi;
     
     y := factorial(x);
     
     if isEven(y) then
-      write(y)
+      write(y);
     else
       printNumber(y);
-      write(x)
-    fi
+      write(x);
+    fi;
   end;
 ```
 
