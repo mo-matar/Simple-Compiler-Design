@@ -766,6 +766,11 @@ AST* Parser::parseStmtIdTail(STEntry* entry) {
     
     if(currentToken->type == lx_colon_eq){
         //assignment statement
+        //check if entry is a function
+        if (entry->Type == STE_ROUTINE) {
+            errorFile << "Semantic Error: Cannot assign to a function on line: " 
+                      << scanner->getLineNum() << std::endl;
+        }
         match(lx_colon_eq);
         AST* exprNode = parseExpr();
         stmtNode = make_ast_node(ast_assign, entry, exprNode);
@@ -773,6 +778,14 @@ AST* Parser::parseStmtIdTail(STEntry* entry) {
     }
     else if(currentToken->type == lx_lparen){
         //note from grammar that the arg_list is the same as primary_expr_tail
+        //check if entry is a variable
+        if(entry->Type != STE_ROUTINE) {
+            errorFile << "Semantic Error: Expected a function call but found a variable on line: " 
+                      << scanner->getLineNum() << std::endl;
+            
+            
+        }
+
         stmtNode = parsePrimaryExprTail(make_ast_node(ast_var, entry));}
         
     else {

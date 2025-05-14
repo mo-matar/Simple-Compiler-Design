@@ -1,0 +1,2 @@
+Semantic Error: Cannot assign to a function on line: 12
+Semantic Error: Expected a function call but found a variable on line: 13

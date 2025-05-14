@@ -10,4 +10,4 @@ program
   begin
     isEven := 5;
     num(result);
-  end
+  end;
