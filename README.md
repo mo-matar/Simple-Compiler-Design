@@ -20,22 +20,13 @@ N23 supports standard programming constructs including:
 
 ```pascal
 program
-
-  var x : integer;
-  var y : integer;
-  constant MAX = 100;
-
-  function factorial(n : integer) : integer
-  begin
-    var result : integer;
-    program
 var num : integer;
 var result : boolean;
 
 function isEven(x : integer) : boolean
 begin
     var remainder : integer;
-
+    
     remainder := x / 2 * 2;
     return(remainder = x);
 end;
@@ -44,16 +35,16 @@ begin
     var msg : string;
     read(num);
     result := isEven(num);
-
+    
     if result then
     begin
         msg := "number is even";
-        write(msg);
+        write(num);
     end
     else
     begin
         msg := "number is odd";
-        write(msg);
+        write(num);
     end
     fi;
 end;
