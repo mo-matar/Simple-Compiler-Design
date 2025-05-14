@@ -48,12 +48,12 @@ begin
     if result then
     begin
         msg := "number is even";
-        write(num);
+        write(msg);
     end
     else
     begin
         msg := "number is odd";
-        write(num);
+        write(msg);
     end
     fi;
 end;
